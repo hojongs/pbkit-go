@@ -1,4 +1,4 @@
-package pollapo
+package yml
 
 import (
 	"reflect"

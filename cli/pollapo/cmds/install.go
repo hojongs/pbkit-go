@@ -1,7 +1,7 @@
 package cmds
 
 import (
-	"github.com/hojongs/pbkit-go/cli/pollapo"
+	"github.com/hojongs/pbkit-go/cli/pollapo/yml"
 )
 
 func Install(
@@ -14,7 +14,7 @@ func Install(
 	// etToken
 	// ackoff (validateToken)
 	// cacheDir
-	pollapoYml := pollapo.LoadPollapoYml(config)
+	pollapoYml := yml.LoadPollapoYml(config)
 	// cacheDeps
 	// lockTable
 	// analyzeDeps
