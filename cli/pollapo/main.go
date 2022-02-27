@@ -1,20 +1,57 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 
+	"github.com/hojongs/pbkit-go/cli/pollapo/cmds"
 	"github.com/urfave/cli/v2"
 )
 
 func main() {
 	app := cli.App{
-		Name:  "boom",
-		Usage: "make an explosive entrance",
-		Action: func(c *cli.Context) error {
-			fmt.Println("boom! I say!")
-			return nil
+		Name:  "pollapo",
+		Usage: "TBD",
+		Commands: []*cli.Command{
+			{
+				Name:    "install",
+				Aliases: []string{"i"},
+				Usage:   "Install dependencies.",
+				Flags: []cli.Flag{
+					&cli.BoolFlag{
+						Name:    "clean",
+						Aliases: []string{"c"},
+						Usage:   "Don't use cache",
+						Value:   false,
+					},
+					&cli.StringFlag{
+						Name:    "out-dir",
+						Aliases: []string{"o"},
+						Usage:   "Out directory",
+						Value:   ".pollapo",
+					},
+					&cli.StringFlag{
+						Name:    "token",
+						Aliases: []string{"t"},
+						Usage:   "GitHub OAuth token",
+					},
+					&cli.StringFlag{
+						Name:    "config",
+						Aliases: []string{"C"},
+						Usage:   "Pollapo config",
+						Value:   "pollapo.yml",
+					},
+				},
+				Action: func(c *cli.Context) error {
+					cmds.Install(
+						c.Bool("clean"),
+						c.String("out-dir"),
+						c.String("token"),
+						c.String("config"),
+					)
+					return nil
+				},
+			},
 		},
 	}
 	err := app.Run(os.Args)
