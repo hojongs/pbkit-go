@@ -6,6 +6,7 @@ import (
 
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/cache"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/cmds"
+	"github.com/hojongs/pbkit-go/cli/pollapo-go/github"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/myzip"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/pollapo"
 	"github.com/urfave/cli/v2"
@@ -46,11 +47,12 @@ func main() {
 					},
 				},
 				Action: func(c *cli.Context) error {
+					gc := github.NewGitHubClient(c.String("token"))
 					cmds.NewCmdInstall(
 						c.Bool("clean"),
 						c.String("out-dir"),
 						c.String("config"),
-						myzip.NewGitHubZipDownloader(c.String("token")),
+						myzip.NewGitHubZipDownloader(gc),
 						myzip.UnzipperImpl{},
 						pollapo.FileConfigLoader{},
 						cache.NewFileSystemCache(),

@@ -17,16 +17,16 @@ type ZipDownloader interface {
 }
 
 type GitHubZipDownloader struct {
-	token string
+	client github.GitHubClient
 }
 
-func NewGitHubZipDownloader(token string) GitHubZipDownloader {
-	return GitHubZipDownloader{token}
+func NewGitHubZipDownloader(client github.GitHubClient) GitHubZipDownloader {
+	return GitHubZipDownloader{client}
 }
 
 func (this GitHubZipDownloader) GetZip(owner string, repo string, ref string) (*zip.Reader, []byte) {
 	// TODO: github authentication with token
-	zipUrl := github.GetZipLink(owner, repo, ref)
+	zipUrl := this.client.GetZipLink(owner, repo, ref)
 	fmt.Printf("Downloading %s...", color.Yellow())
 	resp, err := http.Get(zipUrl)
 	if err != nil {
