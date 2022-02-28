@@ -48,6 +48,7 @@ func main() {
 						c.String("out-dir"),
 						c.String("token"),
 						c.String("config"),
+						cmds.GitHubZipDownloader{},
 					)
 					return nil
 				},
