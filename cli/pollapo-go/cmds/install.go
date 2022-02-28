@@ -135,8 +135,8 @@ func (cmd CmdInstall) downloadZip(dep pollapo.PollapoDep) *zip.Reader {
 	fmt.Printf("Cache not found of %s\n", color.Yellow(cacheKeyOf(dep)))
 	// TODO: github authentication with pollapo login
 	zipReader, zipBin := cmd.zd.GetZip(dep.Owner, dep.Repo, dep.Ref)
-	fmt.Print("ok")
+	fmt.Print("ok.")
 	cmd.cache.Store(cacheKeyOf(dep), zipBin)
-	fmt.Print("Stored Cache.\n")
+	fmt.Print(" Stored Cache.\n")
 	return zipReader
 }

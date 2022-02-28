@@ -12,10 +12,8 @@ type FileSystemCache struct {
 	rootDir string
 }
 
-func NewCache() FileSystemCache {
-	return FileSystemCache{
-		rootDir: GetDefaultCacheRoot(),
-	}
+func NewFileSystemCache() FileSystemCache {
+	return FileSystemCache{rootDir: GetDefaultCacheRoot()}
 }
 
 func (cache FileSystemCache) GetRootLocation() string {
@@ -38,18 +36,23 @@ func (cache FileSystemCache) Store(key string, data []byte) {
 	if _, err := os.Stat(cache.rootDir); os.IsNotExist(err) {
 		os.MkdirAll(cache.rootDir, 0755)
 	}
-	dst := filepath.Join(cache.rootDir, key)
-	err := os.WriteFile(dst, data, 0644)
+	path := filepath.Join(cache.rootDir, key)
+	log.Infow("[Cache] Store", "key", key, "path", path)
+	err := os.WriteFile(path, data, 0644)
 	if err != nil {
-		log.Fatalw("Failed to Write cache file", err, "dst", dst)
+		log.Fatalw("Failed to Write cache file", err, "path", path)
 	}
 }
 
 func (cache FileSystemCache) Get(key string) ([]byte, error) {
-	barr, err := os.ReadFile(filepath.Join(cache.rootDir, key))
+	path := filepath.Join(cache.rootDir, key)
+	log.Infow("[Cache] Get", "key", key, "path", path)
+	barr, err := os.ReadFile(path)
 	if err != nil {
+		log.Infow("[Cache] Get Miss", "key", key, "path", path)
 		return nil, err
 	} else {
+		log.Infow("[Cache] Get Hit", "key", key, "path", path)
 		return barr, nil
 	}
 }
