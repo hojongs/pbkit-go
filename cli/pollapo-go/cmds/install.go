@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/cache"
+	"github.com/hojongs/pbkit-go/cli/pollapo-go/color"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/github"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/log"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/pollapo"
@@ -23,7 +24,7 @@ func Install(
 	log.Infow("Params", "clean", clean, "outDir", outDir, "token", token, "config", pollapoYmlPath)
 
 	if clean {
-		fmt.Printf("Clean cache root: %v\n", cache.CacheRoot)
+		fmt.Printf("Clean cache root: %s\n", color.Yellow(cache.CacheRoot))
 		cache.Clean()
 	}
 
@@ -50,11 +51,11 @@ func Install(
 		zipBin, err := cache.Get(cacheKey)
 		if err != nil {
 			// TODO: color print
-			fmt.Printf("Cache not found of %v\n", cacheKey)
+			fmt.Printf("Cache not found of %s\n", color.Yellow(cacheKey))
 			// TODO: github authentication with pollapo login
 			// TODO: github authentication with token
 			zipUrl := github.GetZipLink(dep)
-			fmt.Printf("Downloading %v...", depTxt)
+			fmt.Printf("Downloading %s...", color.Yellow(depTxt))
 			resp, err := http.Get(zipUrl)
 			if err != nil {
 				log.Fatalw("Failed to HTTP Get", err, "dep", dep)
@@ -69,11 +70,11 @@ func Install(
 			defer resp.Body.Close()
 			fmt.Print("ok\n")
 		} else {
-			fmt.Printf("Use cache of %v.\n", depTxt)
+			fmt.Printf("Use cache of %s.\n", color.Yellow(depTxt))
 		}
 
 		depOutDir := filepath.Join(outDir, dep.Owner, dep.Repo)
-		fmt.Printf("Installing %v...", depTxt)
+		fmt.Printf("Installing %s...", color.Yellow(depTxt))
 		zip.Unzip(zipBin, depOutDir)
 		fmt.Print("ok\n")
 
