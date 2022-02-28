@@ -1,4 +1,4 @@
-package zip
+package myzip
 
 import (
 	"os"
@@ -7,8 +7,10 @@ import (
 
 func TestUnzip(t *testing.T) {
 	barr, err := os.ReadFile("temp.zip")
+	zipReader := NewZipReader(barr)
+
 	if err != nil {
 		t.Fatal(err)
 	}
-	Unzip(barr, "pollapo-test")
+	Unzipper{}.Unzip(zipReader, "pollapo-test")
 }

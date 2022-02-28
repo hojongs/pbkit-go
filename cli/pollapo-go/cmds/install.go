@@ -1,27 +1,25 @@
 package cmds
 
 import (
+	"archive/zip"
 	"fmt"
-	"io"
-	"net/http"
-	"os"
 	"path/filepath"
 	"sort"
 
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/cache"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/color"
-	"github.com/hojongs/pbkit-go/cli/pollapo-go/github"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/log"
+	"github.com/hojongs/pbkit-go/cli/pollapo-go/myzip"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/pollapo"
-	"github.com/hojongs/pbkit-go/cli/pollapo-go/zip"
 )
 
 type CmdInstall struct {
 	cleanCache     bool
 	outDir         string
 	pollapoYmlPath string
-	zd             ZipDownloader
-	loader         PollapoConfigLoader
+	zd             myzip.ZipDownloader
+	uz             myzip.Unzipper
+	loader         pollapo.ConfigLoader
 	cache          cache.Cache
 }
 
@@ -29,70 +27,27 @@ func NewCmdInstall(
 	cleanCache bool,
 	outDir string,
 	pollapoYmlPath string,
-	// TODO: add cache interface
-	zd ZipDownloader,
-	loader PollapoConfigLoader,
+	zd myzip.ZipDownloader,
+	uz myzip.Unzipper,
+	loader pollapo.ConfigLoader,
 	cache cache.Cache,
 ) CmdInstall {
-	return CmdInstall{cleanCache, outDir, pollapoYmlPath, zd, loader, cache}
+	return CmdInstall{cleanCache, outDir, pollapoYmlPath, zd, uz, loader, cache}
 }
 
-type PollapoConfigLoader interface {
-	GetPollapoConfig(pollapoYmlPath string) (pollapo.PollapoConfig, error)
-}
-
-type PollapoConfigFileLoader struct{}
-
-func (ctx CmdInstall) Install() {
-	if ctx.cleanCache {
-		fmt.Printf("Clean cache root: %s\n", color.Yellow(ctx.cache.GetRootLocation()))
-		ctx.cache.Clean()
+func (cmd CmdInstall) Install() {
+	if cmd.cleanCache {
+		fmt.Printf("Clean cache root: %s\n", color.Yellow(cmd.cache.GetRootLocation()))
+		cmd.cache.Clean()
 	}
-	rootCfg, err := ctx.loader.GetPollapoConfig(ctx.pollapoYmlPath)
+	rootCfg, err := cmd.loader.GetPollapoConfig(cmd.pollapoYmlPath)
 	if err != nil {
-		log.Fatalw("Failed to read file", err, "filename", ctx.pollapoYmlPath)
+		log.Fatalw("Failed to read file", err, "filename", cmd.pollapoYmlPath)
 	}
-	ctx.installDepsRecursive(rootCfg)
+	cmd.installDepsRecursive(rootCfg)
 }
 
-func (_ PollapoConfigFileLoader) GetPollapoConfig(pollapoYmlPath string) (pollapo.PollapoConfig, error) {
-	pollapoBytes, err := os.ReadFile(pollapoYmlPath)
-	if err != nil {
-		return pollapo.PollapoConfig{}, err
-	} else {
-		return pollapo.ParsePollapo(pollapoBytes), nil
-	}
-}
-
-type ZipDownloader interface {
-	GetZipBin(owner string, repo string, ref string) []byte
-}
-
-type GitHubZipDownloader struct {
-	Token string
-}
-
-func (this GitHubZipDownloader) GetZipBin(owner string, repo string, ref string) []byte {
-	// TODO: github authentication with token
-	zipUrl := github.GetZipLink(owner, repo, ref)
-	fmt.Printf("Downloading %s...", color.Yellow())
-	resp, err := http.Get(zipUrl)
-	if err != nil {
-		log.Fatalw("Failed to HTTP Get", err, "dep", fmt.Sprintf("%s/%s@%v", owner, repo, ref))
-	}
-	if resp.StatusCode != 200 {
-		log.Fatalw("HTTP Response is not OK", nil, "status", resp.StatusCode)
-	}
-	zipBin, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalw("Failed to Read HTTP Response body", err, "body", zipBin[:1024])
-	}
-	defer resp.Body.Close()
-
-	return zipBin
-}
-
-func (ctx CmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
+func (cmd CmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 	cacheQueue := []string{}
 	cacheQueue = append(cacheQueue, rootCfg.Deps...)
 	depsMap := map[string]map[string][]string{} // depsMap[user/repo][ref]=froms
@@ -114,21 +69,24 @@ func (ctx CmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 			depsMap[dep.Owner+"/"+dep.Repo][dep.Ref] = []string{origin}
 		}
 
-		zipBin, err := ctx.cache.Get(cacheKeyOf(dep))
+		zipBin, err := cmd.cache.Get(cacheKeyOf(dep))
+		var zipReader *zip.Reader = nil
 		if err != nil || zipBin == nil {
 			fmt.Printf("Cache not found of %s\n", color.Yellow(cacheKeyOf(dep)))
 			// TODO: github authentication with pollapo login
-			zipBin = ctx.zd.GetZipBin(dep.Owner, dep.Repo, dep.Ref)
+			zipReader, zipBin = cmd.zd.GetZip(dep.Owner, dep.Repo, dep.Ref)
 			fmt.Print("ok\n")
-			ctx.cache.Store(cacheKeyOf(dep), zipBin)
+			// TODO
+			cmd.cache.Store(cacheKeyOf(dep), zipBin)
 		} else {
 			fmt.Printf("Use cache of %s.\n", color.Yellow(depTxt))
+			zipReader = myzip.NewZipReader(zipBin)
 		}
-		cacheOutDir := filepath.Join(ctx.cache.GetRootLocation(), dep.Owner, dep.Repo)
-		zip.Unzip(zipBin, cacheOutDir)
+		cacheOutDir := filepath.Join(cmd.cache.GetRootLocation(), dep.Owner, dep.Repo)
+		cmd.uz.Unzip(zipReader, cacheOutDir)
 
 		depPollapoYmlPath := filepath.Join(cacheOutDir, "pollapo.yml")
-		depCfg, err := ctx.loader.GetPollapoConfig(depPollapoYmlPath)
+		depCfg, err := cmd.loader.GetPollapoConfig(depPollapoYmlPath)
 		if err == nil {
 			for _, nestedDep := range depCfg.Deps {
 				cacheQueue = append(cacheQueue, nestedDep)
@@ -152,13 +110,14 @@ func (ctx CmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 		if !isOk {
 			log.Fatalw("Failed to parse dep", nil, "dep", depTxt)
 		}
-		depOutDir := filepath.Join(ctx.outDir, dep.Owner, dep.Repo)
-		zipBin, err := ctx.cache.Get(cacheKeyOf(dep))
+		depOutDir := filepath.Join(cmd.outDir, dep.Owner, dep.Repo)
+		zipBin, err := cmd.cache.Get(cacheKeyOf(dep))
 		if err != nil || zipBin == nil {
 			log.Fatalw("Unexpected cache not found. cache has probably been removed during install", err, "dep", dep)
 		}
+		zipReader := myzip.NewZipReader(zipBin)
 		fmt.Printf("Installing %s...", color.Yellow(dep.String()))
-		zip.Unzip(zipBin, depOutDir)
+		cmd.uz.Unzip(zipReader, depOutDir)
 		fmt.Print("ok\n")
 	}
 }

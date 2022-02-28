@@ -1,12 +1,12 @@
 package cmds
 
 import (
-	// "os"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/cache"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/mocks"
+	"github.com/hojongs/pbkit-go/cli/pollapo-go/myzip"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/pollapo"
 )
 
@@ -28,7 +28,8 @@ func TestInstallConfig(t *testing.T) {
 		".pollapo",
 		"",
 		zd,
-		PollapoConfigFileLoader{},
+		myzip.Unzipper{},
+		pollapo.FileConfigLoader{},
 		cache.EmptyCache{}, // Don't use cache
 	).installDepsRecursive(
 		pollapo.PollapoConfig{Deps: []string{"google/apis@dbfbfdb"}},

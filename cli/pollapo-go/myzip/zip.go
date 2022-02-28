@@ -1,4 +1,4 @@
-package zip
+package myzip
 
 import (
 	"archive/zip"
@@ -10,14 +10,10 @@ import (
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/log"
 )
 
-// TODO: Unzipper interface define & impl the interface & pass the impl to install.
+type Unzipper struct{}
 
-func Unzip(barr []byte, outDir string) {
+func (_ Unzipper) Unzip(zipReader *zip.Reader, outDir string) {
 	os.MkdirAll(outDir, 0755)
-	zipReader, err := zip.NewReader(bytes.NewReader(barr), int64(len(barr)))
-	if err != nil {
-		log.Fatalw("Read zip", err)
-	}
 
 	for _, file := range zipReader.File {
 		filename := filepath.Base(file.Name)
@@ -46,4 +42,12 @@ func readFileInZip(zf *zip.File) ([]byte, error) {
 		return nil, err
 	}
 	return barr, nil
+}
+
+func NewZipReader(zipBin []byte) *zip.Reader {
+	zipReader, err := zip.NewReader(bytes.NewReader(zipBin), int64(len(zipBin)))
+	if err != nil {
+		log.Fatalw("Read zip", err)
+	}
+	return zipReader
 }
