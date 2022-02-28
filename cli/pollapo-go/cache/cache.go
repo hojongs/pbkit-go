@@ -8,6 +8,8 @@ import (
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/log"
 )
 
+// TODO: cache interface define & impl the interface & pass the impl to install.
+
 func getCacheRoot() string {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {

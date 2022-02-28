@@ -12,28 +12,23 @@ import (
 func TestInstallConfig(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	// Assert that Bar() is invoked.
 	defer ctrl.Finish()
 
 	zd := mocks.NewMockZipDownloader(ctrl)
 
-	// Asserts that the first and only call to Bar() is passed 99.
-	// Anything else will fail.
 	zd.
 		EXPECT().
 		GetZipBin(gomock.Eq("google"), gomock.Eq("apis"), gomock.Eq("dbfbfdb")).
 		Return([]byte("ASD"))
-	// TODO: add mock zip.Unzip(gomock.Eq([]byte("ASD")))
+	// TODO: mock PollapoConfigFileLoader
 
-	InstallConfig(
+	NewCmdContextInstall(
 		false,
 		".pollapo",
 		"",
-		pollapo.PollapoConfig{
-			Deps: []string{
-				"google/apis@dbfbfdb",
-			},
-		},
 		zd,
+		PollapoConfigFileLoader{},
+	).installDepsRecursive(
+		pollapo.PollapoConfig{Deps: []string{"google/apis@dbfbfdb"}},
 	)
 }

@@ -10,6 +10,8 @@ import (
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/log"
 )
 
+// TODO: Unzipper interface define & impl the interface & pass the impl to install.
+
 func Unzip(barr []byte, outDir string) {
 	os.MkdirAll(outDir, 0755)
 	zipReader, err := zip.NewReader(bytes.NewReader(barr), int64(len(barr)))

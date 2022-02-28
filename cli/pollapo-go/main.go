@@ -43,12 +43,13 @@ func main() {
 					},
 				},
 				Action: func(c *cli.Context) error {
-					cmds.Install(
+					cmds.NewCmdContextInstall(
 						c.Bool("clean"),
 						c.String("out-dir"),
 						c.String("config"),
 						cmds.GitHubZipDownloader{Token: c.String("token")},
-					)
+						cmds.PollapoConfigFileLoader{},
+					).Install()
 					return nil
 				},
 			},
