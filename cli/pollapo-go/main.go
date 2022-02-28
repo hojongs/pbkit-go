@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/hojongs/pbkit-go/cli/pollapo-go/cache"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/cmds"
 	"github.com/urfave/cli/v2"
 )
@@ -43,12 +44,13 @@ func main() {
 					},
 				},
 				Action: func(c *cli.Context) error {
-					cmds.NewCmdContextInstall(
+					cmds.NewCmdInstall(
 						c.Bool("clean"),
 						c.String("out-dir"),
 						c.String("config"),
 						cmds.GitHubZipDownloader{Token: c.String("token")},
 						cmds.PollapoConfigFileLoader{},
+						cache.FileSystemCache{},
 					).Install()
 					return nil
 				},
