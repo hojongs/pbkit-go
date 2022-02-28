@@ -1,6 +1,7 @@
 package pollapo
 
 import (
+	"fmt"
 	"regexp"
 
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/log"
@@ -32,16 +33,13 @@ type PollapoDep struct {
 	Ref   string
 }
 
-// func deps(pollapoYml PollapoYml) []PollapoDep {
-// 	rtv := []PollapoDep{}
-// 	for _, dep := range pollapoYml.Deps {
-// 		rtv = append(rtv, ParseDep(dep))
-// 	}
-// 	return rtv
-// }
-func ParseDep(dep string) (PollapoDep, bool) {
+func (dep PollapoDep) String() string {
+	return fmt.Sprintf("%s/%s@%s", dep.Owner, dep.Repo, dep.Ref)
+}
+
+func ParseDep(depTxt string) (PollapoDep, bool) {
 	r := regexp.MustCompile(`(?P<owner>.+?)\/(?P<repo>.+?)@(?P<rev>.+)`)
-	matches := r.FindStringSubmatch(dep)
+	matches := r.FindStringSubmatch(depTxt)
 	if matches == nil {
 		return PollapoDep{}, false
 	} else {
@@ -56,59 +54,3 @@ func ParseDep(dep string) (PollapoDep, bool) {
 		}, true
 	}
 }
-
-// func getPollapoYml(dep PollapoDep, cacheDir string) PollapoYml {
-// 	panic("A")
-// 	// return LoadPollapoYml(getYmlPath(cacheDir, dep))
-// }
-// func LoadPollapoYml(ymlPath string) PollapoYml {
-// 	return parseYaml(string(pollapoYmlText))
-// }
-
-// func parseYaml(pollapoYmlText string) PollapoYml {
-// 	pollapoYml := PollapoYml{}
-// 	err := yaml.Unmarshal([]byte(pollapoYmlText), &pollapoYml)
-// 	if err != nil {
-// 		// TODO: PollapoYmlMalformedError(ymlPath)
-// 		panic(err)
-// 	}
-// 	return pollapoYml
-// }
-
-// type AnalyzeDepsResultRev struct {
-// 	froms []string
-// }
-
-// func AnalyzeDeps(
-// 	cacheDir string,
-// 	pollapoYml PollapoYml,
-// ) map[string]map[string]AnalyzeDepsResultRev {
-// 	type Dep struct {
-// 		PollapoDep
-// 		from string
-// 	}
-// 	result := map[string]map[string]AnalyzeDepsResultRev{}
-// 	//   const lockTable = pollapoYml?.root?.lock ?? {};
-
-// 	// parse dependencies from pollapoYml and insert it into queue
-// 	temp := []PollapoDep{}
-// 	temp = append(temp, deps(pollapoYml)...)
-// 	queue := []Dep{} // queue of deps
-// 	for _, dep := range temp {
-// 		queue = append(queue, Dep{PollapoDep: dep, from: "<root>"})
-// 	}
-
-// 	for len(queue) > 0 {
-// 		// pop dep from the queue
-// 		dep := queue[0]
-// 		queue = queue[1:]
-
-// 		// Add dep.from into the revision of result
-// 		repoPath := dep.user + "/" + dep.repo
-// 		result[repoPath][dep.rev] = AnalyzeDepsResultRev{
-// 			froms: append(result[repoPath][dep.rev].froms, dep.from),
-// 		}
-// 		// Caution! getPollapoYml requires cacheDeps() before run
-// 	}
-// 	return nil
-// }

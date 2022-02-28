@@ -46,9 +46,8 @@ func main() {
 					cmds.Install(
 						c.Bool("clean"),
 						c.String("out-dir"),
-						c.String("token"),
 						c.String("config"),
-						cmds.GitHubZipDownloader{},
+						cmds.GitHubZipDownloader{Token: c.String("token")},
 					)
 					return nil
 				},
