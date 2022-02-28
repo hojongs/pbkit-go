@@ -51,7 +51,7 @@ func main() {
 						c.String("out-dir"),
 						c.String("config"),
 						myzip.NewGitHubZipDownloader(c.String("token")),
-						myzip.Unzipper{},
+						myzip.UnzipperImpl{},
 						pollapo.FileConfigLoader{},
 						cache.FileSystemCache{},
 					).Install()

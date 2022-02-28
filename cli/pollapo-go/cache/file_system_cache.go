@@ -14,7 +14,7 @@ type FileSystemCache struct {
 
 func NewCache() FileSystemCache {
 	return FileSystemCache{
-		rootDir: initCacheRoot(),
+		rootDir: GetDefaultCacheRoot(),
 	}
 }
 
@@ -22,7 +22,7 @@ func (cache FileSystemCache) GetRootLocation() string {
 	return cache.rootDir
 }
 
-func initCacheRoot() string {
+func GetDefaultCacheRoot() string {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		log.Fatalw("UserHomeDir", err)

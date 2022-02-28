@@ -72,12 +72,7 @@ func (cmd CmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 		zipBin, err := cmd.cache.Get(cacheKeyOf(dep))
 		var zipReader *zip.Reader = nil
 		if err != nil || zipBin == nil {
-			fmt.Printf("Cache not found of %s\n", color.Yellow(cacheKeyOf(dep)))
-			// TODO: github authentication with pollapo login
-			zipReader, zipBin = cmd.zd.GetZip(dep.Owner, dep.Repo, dep.Ref)
-			fmt.Print("ok\n")
-			// TODO
-			cmd.cache.Store(cacheKeyOf(dep), zipBin)
+			zipReader = cmd.downloadZip(dep)
 		} else {
 			fmt.Printf("Use cache of %s.\n", color.Yellow(depTxt))
 			zipReader = myzip.NewZipReader(zipBin)
@@ -112,10 +107,12 @@ func (cmd CmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 		}
 		depOutDir := filepath.Join(cmd.outDir, dep.Owner, dep.Repo)
 		zipBin, err := cmd.cache.Get(cacheKeyOf(dep))
+		var zipReader *zip.Reader = nil
 		if err != nil || zipBin == nil {
-			log.Fatalw("Unexpected cache not found. cache has probably been removed during install", err, "dep", dep)
+			zipReader = cmd.downloadZip(dep)
+		} else {
+			zipReader = myzip.NewZipReader(zipBin)
 		}
-		zipReader := myzip.NewZipReader(zipBin)
 		fmt.Printf("Installing %s...", color.Yellow(dep.String()))
 		cmd.uz.Unzip(zipReader, depOutDir)
 		fmt.Print("ok\n")
@@ -132,4 +129,14 @@ func latestRef(refs []string) string {
 	sortedRefs := refs
 	sort.Strings(sortedRefs)
 	return sortedRefs[0]
+}
+
+func (cmd CmdInstall) downloadZip(dep pollapo.PollapoDep) *zip.Reader {
+	fmt.Printf("Cache not found of %s\n", color.Yellow(cacheKeyOf(dep)))
+	// TODO: github authentication with pollapo login
+	zipReader, zipBin := cmd.zd.GetZip(dep.Owner, dep.Repo, dep.Ref)
+	fmt.Print("ok")
+	cmd.cache.Store(cacheKeyOf(dep), zipBin)
+	fmt.Print("Stored Cache.\n")
+	return zipReader
 }

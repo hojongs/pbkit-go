@@ -12,5 +12,5 @@ func TestUnzip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	Unzipper{}.Unzip(zipReader, "pollapo-test")
+	UnzipperImpl{}.Unzip(zipReader, "pollapo-test")
 }

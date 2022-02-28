@@ -10,9 +10,13 @@ import (
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/log"
 )
 
-type Unzipper struct{}
+type Unzipper interface {
+	Unzip(zipReader *zip.Reader, outDir string)
+}
 
-func (_ Unzipper) Unzip(zipReader *zip.Reader, outDir string) {
+type UnzipperImpl struct{}
+
+func (_ UnzipperImpl) Unzip(zipReader *zip.Reader, outDir string) {
 	os.MkdirAll(outDir, 0755)
 
 	for _, file := range zipReader.File {
