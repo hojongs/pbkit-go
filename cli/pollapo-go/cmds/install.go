@@ -57,16 +57,18 @@ func (cmd CmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 		cacheQueue = cacheQueue[1:]
 
 		dep, isOk := pollapo.ParseDep(depTxt)
+
+		f := func(dep pollapo.PollapoDep) string { return dep.Owner + "/" + dep.Repo }
 		if !isOk {
 			log.Fatalw("Invalid dep", nil, "dep", depTxt)
 		}
-		if depsMap[dep.Owner+"/"+dep.Repo] == nil {
-			depsMap[dep.Owner+"/"+dep.Repo] = map[string][]string{}
+		if depsMap[f(dep)] == nil {
+			depsMap[f(dep)] = map[string][]string{}
 		}
-		if depsMap[dep.Owner+"/"+dep.Repo][dep.Ref] != nil {
-			depsMap[dep.Owner+"/"+dep.Repo][dep.Ref] = append(depsMap[dep.Owner+"/"+dep.Repo][dep.Ref], origin)
+		if depsMap[f(dep)][dep.Ref] != nil {
+			depsMap[f(dep)][dep.Ref] = append(depsMap[f(dep)][dep.Ref], origin)
 		} else {
-			depsMap[dep.Owner+"/"+dep.Repo][dep.Ref] = []string{origin}
+			depsMap[f(dep)][dep.Ref] = []string{origin}
 		}
 
 		zipBin, err := cmd.cache.Get(cacheKeyOf(dep))
