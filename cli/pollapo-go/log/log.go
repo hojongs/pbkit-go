@@ -5,7 +5,7 @@ import "go.uber.org/zap"
 var Sugar = getSugar()
 
 func Infow(msg string, keysAndValues ...interface{}) {
-	Sugar.Infow(msg, keysAndValues)
+	Sugar.Infow(msg, keysAndValues...)
 }
 
 func Fatalw(msg string, cause interface{}, keysAndValues ...interface{}) {

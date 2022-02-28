@@ -3,7 +3,7 @@ package pollapo
 import (
 	"regexp"
 
-	"github.com/hojongs/pbkit-go/cli/pollapo/log"
+	"github.com/hojongs/pbkit-go/cli/pollapo-go/log"
 	"gopkg.in/yaml.v3"
 )
 
@@ -27,9 +27,9 @@ func ParsePollapo(bytes []byte) PollapoConfig {
 }
 
 type PollapoDep struct {
-	owner string
-	repo  string
-	rev   string
+	Owner string
+	Repo  string
+	Ref   string
 }
 
 // func deps(pollapoYml PollapoYml) []PollapoDep {
@@ -50,9 +50,9 @@ func ParseDep(dep string) (PollapoDep, bool) {
 			groups[name] = matches[i+1]
 		}
 		return PollapoDep{
-			owner: groups["owner"],
-			repo:  groups["repo"],
-			rev:   groups["rev"],
+			Owner: groups["owner"],
+			Repo:  groups["repo"],
+			Ref:   groups["rev"],
 		}, true
 	}
 }

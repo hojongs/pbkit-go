@@ -26,7 +26,7 @@ import (
 
 func TestParseDep(t *testing.T) {
 	rtv, _ := ParseDep("google/apis@dbfbfdb")
-	assert.Equal(t, "google", rtv.owner)
-	assert.Equal(t, "apis", rtv.repo)
-	assert.Equal(t, "dbfbfdb", rtv.rev)
+	assert.Equal(t, "google", rtv.Owner)
+	assert.Equal(t, "apis", rtv.Repo)
+	assert.Equal(t, "dbfbfdb", rtv.Ref)
 }
