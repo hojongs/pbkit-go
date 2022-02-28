@@ -11,7 +11,7 @@ import (
 func main() {
 	app := cli.App{
 		Name:  "pollapo",
-		Usage: "TBD",
+		Usage: "Protobuf dependency installer",
 		Commands: []*cli.Command{
 			{
 				Name:    "install",
@@ -21,7 +21,7 @@ func main() {
 					&cli.BoolFlag{
 						Name:    "clean",
 						Aliases: []string{"c"},
-						Usage:   "Don't use cache",
+						Usage:   "Clean cache directory before install",
 						Value:   false,
 					},
 					&cli.StringFlag{
@@ -38,7 +38,7 @@ func main() {
 					&cli.StringFlag{
 						Name:    "config",
 						Aliases: []string{"C"},
-						Usage:   "Pollapo config",
+						Usage:   "Pollapo yml path",
 						Value:   "pollapo.yml",
 					},
 				},
