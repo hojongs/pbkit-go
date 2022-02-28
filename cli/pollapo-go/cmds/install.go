@@ -86,7 +86,14 @@ func installDepsRecursive(
 		if !isOk {
 			log.Fatalw("Invalid dep", nil, "dep", depTxt)
 		}
-		depsMap[dep.Owner+"/"+dep.Repo][dep.Ref] = append(depsMap[dep.Owner+"/"+dep.Repo][dep.Ref], origin)
+		if depsMap[dep.Owner+"/"+dep.Repo] == nil {
+			depsMap[dep.Owner+"/"+dep.Repo] = map[string][]string{}
+		}
+		if depsMap[dep.Owner+"/"+dep.Repo][dep.Ref] != nil {
+			depsMap[dep.Owner+"/"+dep.Repo][dep.Ref] = append(depsMap[dep.Owner+"/"+dep.Repo][dep.Ref], origin)
+		} else {
+			depsMap[dep.Owner+"/"+dep.Repo][dep.Ref] = []string{origin}
+		}
 
 		zipBin, err := cache.Get(cacheKeyOf(dep))
 		if err != nil {
@@ -113,20 +120,25 @@ func installDepsRecursive(
 	}
 
 	latestDeps := []string{}
-	for _, depRefMap := range depsMap {
+	for repoPath, depRefMap := range depsMap {
 		refs := make([]string, 0, len(depRefMap))
 		for k := range depRefMap {
 			refs = append(refs, k)
 		}
-		latestDeps = append(latestDeps, latestRef(refs))
+		depTxt := fmt.Sprintf("%s@%s", repoPath, latestRef(refs))
+		latestDeps = append(latestDeps, depTxt)
 	}
 
+	log.Infow("", "latestDeps", latestDeps)
 	for _, depTxt := range latestDeps {
-		dep, _ := pollapo.ParseDep(depTxt)
+		dep, isOk := pollapo.ParseDep(depTxt)
+		if !isOk {
+			log.Fatalw("Failed to parse dep", nil, "dep", depTxt)
+		}
 		depOutDir := filepath.Join(outDir, dep.Owner, dep.Repo)
 		zipBin, err := cache.Get(cacheKeyOf(dep))
 		if err != nil {
-			log.Fatalw("Unexpected cache not found. cache has probably been removed during install", "dep", dep)
+			log.Fatalw("Unexpected cache not found. cache has probably been removed during install", err, "dep", dep)
 		}
 		fmt.Printf("Installing %s...", color.Yellow(dep.String()))
 		zip.Unzip(zipBin, depOutDir)

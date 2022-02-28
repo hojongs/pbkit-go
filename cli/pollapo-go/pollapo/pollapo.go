@@ -47,10 +47,14 @@ func ParseDep(depTxt string) (PollapoDep, bool) {
 		for i, name := range r.SubexpNames()[1:] {
 			groups[name] = matches[i+1]
 		}
-		return PollapoDep{
+		dep := PollapoDep{
 			Owner: groups["owner"],
 			Repo:  groups["repo"],
 			Ref:   groups["rev"],
-		}, true
+		}
+		if dep.Owner == "" || dep.Repo == "" || dep.Ref == "" {
+			return PollapoDep{}, false
+		}
+		return dep, true
 	}
 }
