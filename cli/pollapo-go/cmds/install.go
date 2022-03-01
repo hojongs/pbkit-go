@@ -94,9 +94,7 @@ func (cmd CmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 		depPollapoYmlPath := filepath.Join(cacheOutDir, "pollapo.yml")
 		depCfg, err := cmd.loader.GetPollapoConfig(depPollapoYmlPath)
 		if err == nil {
-			for _, nestedDep := range depCfg.Deps {
-				cacheQueue = append(cacheQueue, nestedDep)
-			}
+			cacheQueue = append(cacheQueue, depCfg.Deps...)
 		}
 		origin = depTxt
 	}
