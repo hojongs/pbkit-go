@@ -92,11 +92,12 @@ func (cmd CmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 			zipReader = myzip.NewZipReader(zipBin)
 		}
 		cacheOutDir := filepath.Join(cmd.cache.GetRootLocation(), dep.Owner, dep.Repo)
+
 		cmd.uz.Unzip(zipReader, cacheOutDir)
 
 		depPollapoYmlPath := filepath.Join(cacheOutDir, "pollapo.yml")
 		depCfg, err := cmd.loader.GetPollapoConfig(depPollapoYmlPath)
-		if err == nil {
+		if err == nil { // if pollapo config found
 			cacheQueue = append(cacheQueue, depCfg.Deps...)
 		}
 		origin = depTxt

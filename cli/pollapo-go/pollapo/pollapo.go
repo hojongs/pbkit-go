@@ -22,7 +22,7 @@ func ParsePollapo(barr []byte) PollapoConfig {
 	cfg := PollapoConfig{}
 	err := yaml.Unmarshal([]byte(barr), &cfg)
 	if err != nil {
-		log.Fatalw("Failed to unmarshal yaml", err.Error(), "yaml", barr)
+		log.Fatalw("Failed to unmarshal yaml", err, "yaml", string(barr[:128]))
 	}
 	return cfg
 }

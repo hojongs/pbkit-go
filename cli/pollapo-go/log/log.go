@@ -8,7 +8,7 @@ func Infow(msg string, keysAndValues ...interface{}) {
 	Sugar.Infow(msg, keysAndValues...)
 }
 
-func Fatalw(msg string, cause interface{}, keysAndValues ...interface{}) {
+func Fatalw(msg string, cause error, keysAndValues ...interface{}) {
 	Sugar.Fatalw(msg, append(keysAndValues, "cause", cause)...)
 }
 
