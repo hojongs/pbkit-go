@@ -13,18 +13,28 @@ Original proejct: https://github.com/pbkit/pbkit
 ### Installation
 
 ```sh
+go install -v github.com/hojongs/pbkit-go/cli/pollapo-go@latest
+```
+
+### Installation from source
+
+```sh
+git clone https://github.com/hojongs/pbkit-go.git
+cd pbkit-go
 # Ensure your working directory is the root of project
 go install ./cli/pollapo-go
 ```
 
 ### Command Example
 
-- install
-  ```sh
-  pollapo-go help
-  pollapo-go i
-  pollapo-go install
-  ```
+- help, login, install
+
+There is an aliases for each command
+
+```sh
+pollapo-go install
+pollapo-go i
+```
 
 ## Run Test
 
@@ -34,3 +44,4 @@ mockgen -source ./cli/pollapo-go/myzip/zip.go -destination ./cli/pollapo-go/myzi
 mockgen -source ./cli/pollapo-go/pollapo/pollapo_config_loader.go -destination ./cli/pollapo-go/pollapo/pollapo_config_loader_mock.go -package pollapo
 go test -v ./cli/pollapo-go/cmds
 ```
+
