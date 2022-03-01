@@ -110,6 +110,7 @@ func (cmd CmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 		depTxt := fmt.Sprintf("%s@%s", repoPath, latestRef(refs))
 		latestDeps = append(latestDeps, depTxt)
 	}
+	sort.Strings(latestDeps)
 
 	for _, depTxt := range latestDeps {
 		dep, isOk := pollapo.ParseDep(depTxt)
