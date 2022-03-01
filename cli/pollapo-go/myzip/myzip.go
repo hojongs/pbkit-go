@@ -18,6 +18,8 @@ type Unzipper interface {
 type UnzipperImpl struct{}
 
 func (uz UnzipperImpl) Unzip(zipReader *zip.Reader, outDir string) {
+	c := make(chan int)
+	l := len(zipReader.File[1:])
 	for _, f := range zipReader.File[1:] {
 		i := strings.Index(f.Name, "/")
 		// log.Infow("Unzip", "filepath", f.Name[i+1:])
@@ -34,27 +36,34 @@ func (uz UnzipperImpl) Unzip(zipReader *zip.Reader, outDir string) {
 			log.Fatalw("Failed to unzip", err)
 		}
 
-		outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
-		if err != nil {
-			log.Fatalw("Failed to unzip", err)
-		}
+		// ch <- go ff(f, fpath)
+		go func() {
+			outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+			if err != nil {
+				log.Fatalw("Failed to unzip", err)
+			}
+			defer outFile.Close()
 
-		rc, err := f.Open()
-		if err != nil {
-			log.Fatalw("Failed to unzip", err)
-		}
-		_, err = io.Copy(outFile, rc)
+			rc, err := f.Open()
+			if err != nil {
+				log.Fatalw("Failed to unzip", err)
+			}
+			defer rc.Close()
+			_, err = io.Copy(outFile, rc)
 
-		// Close the file without defer so that
-		// it closes the outfile before the loop
-		// moves to the next iteration. this kinda
-		// saves an iteration of memory & time in
-		// the worst case scenario.
-		outFile.Close()
-		rc.Close()
+			if err != nil {
+				log.Fatalw("Failed to unzip", err)
+			}
 
-		if err != nil {
-			log.Fatalw("Failed to unzip", err)
+			c <- 0
+		}()
+	}
+
+	i := 0
+	for range c {
+		i += 1
+		if i == l {
+			close(c)
 		}
 	}
 }

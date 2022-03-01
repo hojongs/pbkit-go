@@ -12,6 +12,7 @@ import (
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/mycolor"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/myzip"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/pollapo"
+	"google.golang.org/appengine/channel"
 )
 
 type CmdInstall struct {
@@ -89,7 +90,13 @@ func (cmd CmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 			zipReader = myzip.NewZipReader(zipBin)
 		}
 		cacheOutDir := filepath.Join(cmd.cache.GetRootLocation(), dep.Owner, dep.Repo)
-		cmd.uz.Unzip(zipReader, cacheOutDir)
+		channel ch
+		ch <- go cmd.uz.Unzip(zipReader, cacheOutDir)
+		/*
+		runBlocking {
+			f()
+		}
+		*/
 
 		depPollapoYmlPath := filepath.Join(cacheOutDir, "pollapo.yml")
 		depCfg, err := cmd.loader.GetPollapoConfig(depPollapoYmlPath)
