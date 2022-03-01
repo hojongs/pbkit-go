@@ -29,7 +29,7 @@ func (gc Client) GetZipLink(owner string, repo string, ref string) string {
 	url, _, err := gc.client.Repositories.GetArchiveLink(context.Background(), owner, repo, github.Zipball, &opts, true)
 	if err != nil {
 		fmt.Printf("%s\n", mycolor.Red("error"))
-		fmt.Printf("Login required.\n")
+		fmt.Printf("Login required. (%s/%s@%s)\n", owner, repo, ref)
 		os.Exit(1)
 	}
 	return url.String()
