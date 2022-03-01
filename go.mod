@@ -8,6 +8,8 @@ require (
 )
 
 require (
+	github.com/cli/browser v1.0.0 // indirect
+	github.com/cli/safeexec v1.0.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang/protobuf v1.4.2 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
@@ -24,6 +26,7 @@ require (
 )
 
 require (
+	github.com/cli/oauth v0.9.0
 	github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d // indirect
 	github.com/fatih/color v1.13.0
 	github.com/golang/mock v1.6.0

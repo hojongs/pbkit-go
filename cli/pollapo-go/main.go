@@ -60,6 +60,15 @@ func main() {
 					return nil
 				},
 			},
+			{
+				Name:    "login",
+				Aliases: []string{"l"},
+				Usage:   "Sign in with GitHub account",
+				Action: func(c *cli.Context) error {
+					cmds.Login()
+					return nil
+				},
+			},
 		},
 	}
 	err := app.Run(os.Args)

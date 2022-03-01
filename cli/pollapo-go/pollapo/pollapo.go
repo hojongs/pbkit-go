@@ -5,12 +5,12 @@ import (
 	"regexp"
 
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/log"
-	"gopkg.in/yaml.v3"
+	"github.com/hojongs/pbkit-go/cli/pollapo-go/yaml"
 )
 
 type PollapoConfig struct {
 	Deps []string
-	root PollapoRoot
+	// root PollapoRoot
 }
 
 type PollapoRoot struct {
@@ -18,11 +18,11 @@ type PollapoRoot struct {
 	// replace file option
 }
 
-func ParsePollapo(bytes []byte) PollapoConfig {
+func ParsePollapo(barr []byte) PollapoConfig {
 	cfg := PollapoConfig{}
-	err := yaml.Unmarshal([]byte(bytes), &cfg)
+	err := yaml.Unmarshal([]byte(barr), &cfg)
 	if err != nil {
-		log.Fatalw("Failed to unmarshal yaml", err.Error(), "yaml", bytes)
+		log.Fatalw("Failed to unmarshal yaml", err.Error(), "yaml", barr)
 	}
 	return cfg
 }
