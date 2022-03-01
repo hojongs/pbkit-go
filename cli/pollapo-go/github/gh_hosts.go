@@ -46,7 +46,7 @@ func GetTokenFromGhHosts() string {
 }
 
 type GhHosts struct {
-	GithubCom GhHost `yaml:"githubcom"`
+	GithubCom GhHost `yaml:"github.com"`
 }
 
 type GhHost struct {
