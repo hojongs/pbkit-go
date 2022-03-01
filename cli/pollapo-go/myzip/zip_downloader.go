@@ -32,6 +32,7 @@ func (gzd GitHubZipDownloader) GetZip(owner string, repo string, ref string) (*z
 	if err != nil {
 		log.Fatalw("Failed to HTTP Get", err, "dep", fmt.Sprintf("%s/%s@%v", owner, repo, ref))
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		log.Fatalw("HTTP Response is not OK", nil, "status", resp.StatusCode)
 	}
@@ -39,7 +40,6 @@ func (gzd GitHubZipDownloader) GetZip(owner string, repo string, ref string) (*z
 	if err != nil {
 		log.Fatalw("Failed to Read HTTP Response body", err, "body", zipBin[:1024])
 	}
-	defer resp.Body.Close()
 	zipReader := NewZipReader(zipBin)
 
 	return zipReader, zipBin

@@ -19,16 +19,16 @@ type UnzipperImpl struct{}
 func (uz UnzipperImpl) Unzip(zipReader *zip.Reader, outDir string) {
 	os.MkdirAll(outDir, 0755)
 
-	for _, file := range zipReader.File {
+	for _, file := range zipReader.File[1:] {
 		filename := filepath.Base(file.Name)
-		// log.Infow("Reading file", "filename", filename)
-		fileBarr, err := readFileInZip(file)
+		log.Infow("Reading file", "filename", filename)
+		fileBarr, err := readFile(file)
 		if err != nil {
 			log.Fatalw("Failed to Read file in zip", err)
 		}
 		dst := filepath.Join(outDir, filename)
-		// TODO: if the directory or file already exists
 		if _, err := os.Stat(dst); os.IsNotExist(err) {
+			// TODO: write nested file into proper directory
 			err = os.WriteFile(dst, fileBarr, 0644)
 			if err != nil {
 				log.Fatalw("Failed to Write file from zip", err, "dst", dst)
@@ -37,7 +37,15 @@ func (uz UnzipperImpl) Unzip(zipReader *zip.Reader, outDir string) {
 	}
 }
 
-func readFileInZip(zf *zip.File) ([]byte, error) {
+func NewZipReader(zipBin []byte) *zip.Reader {
+	zipReader, err := zip.NewReader(bytes.NewReader(zipBin), int64(len(zipBin)))
+	if err != nil {
+		log.Fatalw("Read zip", err)
+	}
+	return zipReader
+}
+
+func readFile(zf *zip.File) ([]byte, error) {
 	r, err := zf.Open()
 	if err != nil {
 		return nil, err
@@ -48,12 +56,4 @@ func readFileInZip(zf *zip.File) ([]byte, error) {
 		return nil, err
 	}
 	return barr, nil
-}
-
-func NewZipReader(zipBin []byte) *zip.Reader {
-	zipReader, err := zip.NewReader(bytes.NewReader(zipBin), int64(len(zipBin)))
-	if err != nil {
-		log.Fatalw("Read zip", err)
-	}
-	return zipReader
 }
