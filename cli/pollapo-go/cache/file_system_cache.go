@@ -37,7 +37,7 @@ func (cache FileSystemCache) Store(key string, data []byte) {
 		os.MkdirAll(cache.rootDir, 0755)
 	}
 	path := filepath.Join(cache.rootDir, key)
-	log.Infow("[Cache] Store", "key", key, "path", path)
+	// log.Infow("[Cache] Store", "key", key, "path", path)
 	err := os.WriteFile(path, data, 0644)
 	if err != nil {
 		log.Fatalw("Failed to Write cache file", err, "path", path)
@@ -46,13 +46,13 @@ func (cache FileSystemCache) Store(key string, data []byte) {
 
 func (cache FileSystemCache) Get(key string) ([]byte, error) {
 	path := filepath.Join(cache.rootDir, key)
-	log.Infow("[Cache] Get", "key", key, "path", path)
+	// log.Infow("[Cache] Get", "key", key, "path", path)
 	barr, err := os.ReadFile(path)
 	if err != nil {
-		log.Infow("[Cache] Get Miss", "key", key, "path", path)
+		// log.Infow("[Cache] Get Miss", "key", key, "path", path)
 		return nil, err
 	} else {
-		log.Infow("[Cache] Get Hit", "key", key, "path", path)
+		// log.Infow("[Cache] Get Hit", "key", key, "path", path)
 		return barr, nil
 	}
 }

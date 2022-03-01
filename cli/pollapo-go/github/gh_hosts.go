@@ -42,7 +42,6 @@ func GetTokenFromGhHosts() string {
 	if err != nil {
 		log.Fatalw("Failed to parse gh hosts.yaml", err)
 	}
-	log.Infow(cfg.GithubCom.OauthToken)
 	return cfg.GithubCom.OauthToken
 }
 

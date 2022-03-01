@@ -7,8 +7,8 @@ import (
 	"sort"
 
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/cache"
-	"github.com/hojongs/pbkit-go/cli/pollapo-go/color"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/log"
+	"github.com/hojongs/pbkit-go/cli/pollapo-go/mycolor"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/myzip"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/pollapo"
 )
@@ -37,7 +37,7 @@ func NewCmdInstall(
 
 func (cmd CmdInstall) Install() {
 	if cmd.cleanCache {
-		fmt.Printf("Clean cache root: %s\n", color.Yellow(cmd.cache.GetRootLocation()))
+		fmt.Printf("Clean cache root: %s\n", mycolor.Yellow(cmd.cache.GetRootLocation()))
 		cmd.cache.Clean()
 	}
 	rootCfg, err := cmd.loader.GetPollapoConfig(cmd.pollapoYmlPath)
@@ -76,7 +76,7 @@ func (cmd CmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 		if err != nil || zipBin == nil {
 			zipReader = cmd.downloadZip(dep)
 		} else {
-			fmt.Printf("Use cache of %s.\n", color.Yellow(depTxt))
+			fmt.Printf("Use cache of %s.\n", mycolor.Yellow(depTxt))
 			zipReader = myzip.NewZipReader(zipBin)
 		}
 		cacheOutDir := filepath.Join(cmd.cache.GetRootLocation(), dep.Owner, dep.Repo)
@@ -115,7 +115,7 @@ func (cmd CmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 		} else {
 			zipReader = myzip.NewZipReader(zipBin)
 		}
-		fmt.Printf("Installing %s...", color.Yellow(dep.String()))
+		fmt.Printf("Installing %s...", mycolor.Yellow(dep.String()))
 		cmd.uz.Unzip(zipReader, depOutDir)
 		fmt.Print("ok\n")
 	}
@@ -134,8 +134,7 @@ func latestRef(refs []string) string {
 }
 
 func (cmd CmdInstall) downloadZip(dep pollapo.PollapoDep) *zip.Reader {
-	fmt.Printf("Cache not found of %s\n", color.Yellow(cacheKeyOf(dep)))
-	// TODO: github authentication with pollapo login
+	// log.Infow("Cache not found", "dep", mycolor.Yellow(cacheKeyOf(dep)))
 	zipReader, zipBin := cmd.zd.GetZip(dep.Owner, dep.Repo, dep.Ref)
 	fmt.Print("ok.")
 	cmd.cache.Store(cacheKeyOf(dep), zipBin)

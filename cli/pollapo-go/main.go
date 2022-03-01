@@ -47,7 +47,13 @@ func main() {
 					},
 				},
 				Action: func(c *cli.Context) error {
-					gc := github.NewGitHubClient(c.String("token"))
+					var token string
+					if len(c.String("token")) > 0 {
+						token = c.String("token")
+					} else {
+						token = github.GetTokenFromGhHosts()
+					}
+					gc := github.NewClient(token)
 					cmds.NewCmdInstall(
 						c.Bool("clean"),
 						c.String("out-dir"),

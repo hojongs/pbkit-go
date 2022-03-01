@@ -6,9 +6,9 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/hojongs/pbkit-go/cli/pollapo-go/color"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/github"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/log"
+	"github.com/hojongs/pbkit-go/cli/pollapo-go/mycolor"
 )
 
 type ZipDownloader interface {
@@ -17,17 +17,17 @@ type ZipDownloader interface {
 }
 
 type GitHubZipDownloader struct {
-	client github.GitHubClient
+	client github.Client
 }
 
-func NewGitHubZipDownloader(client github.GitHubClient) GitHubZipDownloader {
+func NewGitHubZipDownloader(client github.Client) GitHubZipDownloader {
 	return GitHubZipDownloader{client}
 }
 
-func (this GitHubZipDownloader) GetZip(owner string, repo string, ref string) (*zip.Reader, []byte) {
+func (gzd GitHubZipDownloader) GetZip(owner string, repo string, ref string) (*zip.Reader, []byte) {
 	// TODO: github authentication with token
-	zipUrl := this.client.GetZipLink(owner, repo, ref)
-	fmt.Printf("Downloading %s...", color.Yellow())
+	zipUrl := gzd.client.GetZipLink(owner, repo, ref)
+	fmt.Printf("Downloading %s...", mycolor.Yellow(owner+"/"+repo+"@"+ref))
 	resp, err := http.Get(zipUrl)
 	if err != nil {
 		log.Fatalw("Failed to HTTP Get", err, "dep", fmt.Sprintf("%s/%s@%v", owner, repo, ref))
