@@ -4,6 +4,8 @@ Original proejct: https://github.com/pbkit/pbkit
 
 > Note: This project is very very early stage !!!
 
+# Pollapo: Protobuf Dependency Installer
+
 ## Getting Started
 
 ### Prerequisite
@@ -25,16 +27,9 @@ cd pbkit-go
 go install ./cli/pollapo-go
 ```
 
-### Command Example
+### Commands
 
-- help, login, install
-
-There is an aliases for each command
-
-```sh
-pollapo-go install
-pollapo-go i
-```
+![image](https://user-images.githubusercontent.com/15096588/156098794-4babe731-5c16-4742-83cc-db707b66afae.png)
 
 ## Run Test
 
