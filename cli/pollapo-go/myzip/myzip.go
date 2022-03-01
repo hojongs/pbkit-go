@@ -16,7 +16,7 @@ type Unzipper interface {
 
 type UnzipperImpl struct{}
 
-func (_ UnzipperImpl) Unzip(zipReader *zip.Reader, outDir string) {
+func (uz UnzipperImpl) Unzip(zipReader *zip.Reader, outDir string) {
 	os.MkdirAll(outDir, 0755)
 
 	for _, file := range zipReader.File {
@@ -28,9 +28,11 @@ func (_ UnzipperImpl) Unzip(zipReader *zip.Reader, outDir string) {
 		}
 		dst := filepath.Join(outDir, filename)
 		// TODO: if the directory or file already exists
-		err = os.WriteFile(dst, fileBarr, 0644)
-		if err != nil {
-			log.Fatalw("Failed to Write file from zip", err, "dst", dst)
+		if _, err := os.Stat(dst); os.IsNotExist(err) {
+			err = os.WriteFile(dst, fileBarr, 0644)
+			if err != nil {
+				log.Fatalw("Failed to Write file from zip", err, "dst", dst)
+			}
 		}
 	}
 }

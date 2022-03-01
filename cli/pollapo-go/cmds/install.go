@@ -3,6 +3,7 @@ package cmds
 import (
 	"archive/zip"
 	"fmt"
+	"os"
 	"path/filepath"
 	"sort"
 
@@ -42,9 +43,17 @@ func (cmd CmdInstall) Install() {
 	}
 	rootCfg, err := cmd.loader.GetPollapoConfig(cmd.pollapoYmlPath)
 	if err != nil {
-		log.Fatalw("Failed to read file", err, "filename", cmd.pollapoYmlPath)
+		fmt.Printf("%s\n", mycolor.Red("error"))
+		absPath, err := filepath.Abs(cmd.pollapoYmlPath)
+		if err != nil {
+			log.Fatalw("Unknown error. Please retry.", err)
+		}
+		fmt.Printf("\"%s\" not found.\n", mycolor.Red(absPath))
+		// TODO: Create absPath?
+		os.Exit(1)
 	}
 	cmd.installDepsRecursive(rootCfg)
+	fmt.Println("Done.")
 }
 
 func (cmd CmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
