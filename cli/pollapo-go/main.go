@@ -14,8 +14,9 @@ import (
 
 func main() {
 	app := cli.App{
-		Name:  "pollapo-go",
-		Usage: "Protobuf dependency installer",
+		Name:    "pollapo-go",
+		Usage:   "Protobuf dependency installer",
+		Version: "0.2.0",
 		Commands: []*cli.Command{
 			{
 				Name:    "install",
