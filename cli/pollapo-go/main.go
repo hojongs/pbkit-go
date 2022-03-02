@@ -12,7 +12,7 @@ func main() {
 	app := cli.App{
 		Name:    "pollapo-go",
 		Usage:   "Protobuf dependency installer",
-		Version: "0.2.1",
+		Version: "0.2.3",
 		Commands: []*cli.Command{
 			&cmds.CommandInstall,
 			&cmds.CommandLogin,
