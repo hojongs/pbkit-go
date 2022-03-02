@@ -5,9 +5,20 @@ import (
 
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/github"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/log"
+	"github.com/urfave/cli/v2"
 )
 
-func Login() {
+var CommandLogin = cli.Command{
+	Name:    "login",
+	Aliases: []string{"l"},
+	Usage:   "Sign in with GitHub account",
+	Action: func(c *cli.Context) error {
+		login()
+		return nil
+	},
+}
+
+func login() {
 	token := github.GetTokenFromGhHosts()
 	if len(token) == 0 {
 		log.Infow("Token not found.")

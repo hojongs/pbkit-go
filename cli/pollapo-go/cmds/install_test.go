@@ -31,7 +31,7 @@ func TestInstallConfig(t *testing.T) {
 
 	// TODO: mock PollapoConfigFileLoader
 
-	NewCmdInstall(
+	newCmdInstall(
 		false,
 		".pollapo",
 		"",

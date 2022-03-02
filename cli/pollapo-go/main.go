@@ -4,11 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/hojongs/pbkit-go/cli/pollapo-go/cache"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/cmds"
-	"github.com/hojongs/pbkit-go/cli/pollapo-go/github"
-	"github.com/hojongs/pbkit-go/cli/pollapo-go/myzip"
-	"github.com/hojongs/pbkit-go/cli/pollapo-go/pollapo"
 	"github.com/urfave/cli/v2"
 )
 
@@ -18,64 +14,8 @@ func main() {
 		Usage:   "Protobuf dependency installer",
 		Version: "0.2.0",
 		Commands: []*cli.Command{
-			{
-				Name:    "install",
-				Aliases: []string{"i"},
-				Usage:   "Install dependencies.",
-				Flags: []cli.Flag{
-					&cli.BoolFlag{
-						Name:    "clean",
-						Aliases: []string{"c"},
-						Usage:   "Clean cache directory before install",
-						Value:   false,
-					},
-					&cli.StringFlag{
-						Name:    "out-dir",
-						Aliases: []string{"o"},
-						Usage:   "Out directory",
-						Value:   ".pollapo",
-					},
-					&cli.StringFlag{
-						Name:    "token",
-						Aliases: []string{"t"},
-						Usage:   "GitHub OAuth token",
-					},
-					&cli.StringFlag{
-						Name:    "config",
-						Aliases: []string{"C"},
-						Usage:   "Pollapo yml path",
-						Value:   "pollapo.yml",
-					},
-				},
-				Action: func(c *cli.Context) error {
-					var token string
-					if len(c.String("token")) > 0 {
-						token = c.String("token")
-					} else {
-						token = github.GetTokenFromGhHosts()
-					}
-					gc := github.NewClient(token)
-					cmds.NewCmdInstall(
-						c.Bool("clean"),
-						c.String("out-dir"),
-						c.String("config"),
-						myzip.NewGitHubZipDownloader(gc),
-						myzip.UnzipperImpl{},
-						pollapo.FileConfigLoader{},
-						cache.NewFileSystemCache(),
-					).Install()
-					return nil
-				},
-			},
-			{
-				Name:    "login",
-				Aliases: []string{"l"},
-				Usage:   "Sign in with GitHub account",
-				Action: func(c *cli.Context) error {
-					cmds.Login()
-					return nil
-				},
-			},
+			&cmds.CommandInstall,
+			&cmds.CommandLogin,
 		},
 	}
 	err := app.Run(os.Args)

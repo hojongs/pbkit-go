@@ -8,13 +8,65 @@ import (
 	"sort"
 
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/cache"
+	"github.com/hojongs/pbkit-go/cli/pollapo-go/github"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/log"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/mycolor"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/myzip"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/pollapo"
+	"github.com/urfave/cli/v2"
 )
 
-type CmdInstall struct {
+var CommandInstall = cli.Command{
+	Name:    "install",
+	Aliases: []string{"i"},
+	Usage:   "Install dependencies.",
+	Flags: []cli.Flag{
+		&cli.BoolFlag{
+			Name:    "clean",
+			Aliases: []string{"c"},
+			Usage:   "Clean cache directory before install",
+			Value:   false,
+		},
+		&cli.StringFlag{
+			Name:    "out-dir",
+			Aliases: []string{"o"},
+			Usage:   "Out directory",
+			Value:   ".pollapo",
+		},
+		&cli.StringFlag{
+			Name:    "token",
+			Aliases: []string{"t"},
+			Usage:   "GitHub OAuth token",
+		},
+		&cli.StringFlag{
+			Name:    "config",
+			Aliases: []string{"C"},
+			Usage:   "Pollapo yml path",
+			Value:   "pollapo.yml",
+		},
+	},
+	Action: func(c *cli.Context) error {
+		var token string
+		if len(c.String("token")) > 0 {
+			token = c.String("token")
+		} else {
+			token = github.GetTokenFromGhHosts()
+		}
+		gc := github.NewClient(token)
+		newCmdInstall(
+			c.Bool("clean"),
+			c.String("out-dir"),
+			c.String("config"),
+			myzip.NewGitHubZipDownloader(gc),
+			myzip.UnzipperImpl{},
+			pollapo.FileConfigLoader{},
+			cache.NewFileSystemCache(),
+		).Install()
+		return nil
+	},
+}
+
+type cmdInstall struct {
 	cleanCache     bool
 	outDir         string
 	pollapoYmlPath string
@@ -24,7 +76,7 @@ type CmdInstall struct {
 	cache          cache.Cache
 }
 
-func NewCmdInstall(
+func newCmdInstall(
 	cleanCache bool,
 	outDir string,
 	pollapoYmlPath string,
@@ -32,11 +84,11 @@ func NewCmdInstall(
 	uz myzip.Unzipper,
 	loader pollapo.ConfigLoader,
 	cache cache.Cache,
-) CmdInstall {
-	return CmdInstall{cleanCache, outDir, pollapoYmlPath, zd, uz, loader, cache}
+) cmdInstall {
+	return cmdInstall{cleanCache, outDir, pollapoYmlPath, zd, uz, loader, cache}
 }
 
-func (cmd CmdInstall) Install() {
+func (cmd cmdInstall) Install() {
 	if cmd.cleanCache {
 		fmt.Printf("Clean cache root: %s\n", mycolor.Yellow(cmd.cache.GetRootLocation()))
 		cmd.cache.Clean()
@@ -59,7 +111,7 @@ func (cmd CmdInstall) Install() {
 	fmt.Println("Done.")
 }
 
-func (cmd CmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
+func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 	cacheQueue := []string{}
 	cacheQueue = append(cacheQueue, rootCfg.Deps...)
 	depsMap := map[string]map[string][]string{} // depsMap[user/repo][ref]=froms
@@ -144,7 +196,7 @@ func latestRef(refs []string) string {
 	return sortedRefs[0]
 }
 
-func (cmd CmdInstall) downloadZip(dep pollapo.PollapoDep) *zip.Reader {
+func (cmd cmdInstall) downloadZip(dep pollapo.PollapoDep) *zip.Reader {
 	// log.Infow("Cache not found", "dep", mycolor.Yellow(cacheKeyOf(dep)))
 	zipReader, zipBin := cmd.zd.GetZip(dep.Owner, dep.Repo, dep.Ref)
 	fmt.Print("ok.")
