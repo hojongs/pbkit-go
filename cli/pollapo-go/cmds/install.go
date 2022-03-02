@@ -52,6 +52,9 @@ func (cmd CmdInstall) Install() {
 		// TODO: Create absPath?
 		os.Exit(1)
 	}
+	if err := os.RemoveAll(cmd.outDir); err != nil {
+		log.Fatalw("Remove out dir", err, "outDir", cmd.outDir)
+	}
 	cmd.installDepsRecursive(rootCfg)
 	fmt.Println("Done.")
 }
