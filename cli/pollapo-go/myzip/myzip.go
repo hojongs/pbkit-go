@@ -13,17 +13,21 @@ import (
 
 type Unzipper interface {
 	Unzip(zipReader *zip.Reader, outDir string)
+	UnzipFilter(zipReader *zip.Reader, outDir string, filter string)
 }
 
 type UnzipperImpl struct{}
 
-func (uz UnzipperImpl) Unzip(zipReader *zip.Reader, outDir string) {
+func (uz UnzipperImpl) UnzipFilter(zipReader *zip.Reader, outDir string, filter string) {
 	for _, f := range zipReader.File[1:] {
 		i := strings.Index(f.Name, "/")
 		// log.Infow("Unzip", "filepath", f.Name[i+1:])
 		fpath := filepath.Join(outDir, f.Name[i+1:])
+		if filter != "" && fpath != filter {
+			continue
+		}
 		if !strings.HasPrefix(fpath, filepath.Clean(outDir)+string(os.PathSeparator)) {
-			return
+			log.Fatalw("Failed to unzip: invalid path", nil, "path", fpath)
 		}
 
 		if f.FileInfo().IsDir() {
@@ -57,6 +61,10 @@ func (uz UnzipperImpl) Unzip(zipReader *zip.Reader, outDir string) {
 			log.Fatalw("Failed to unzip", err)
 		}
 	}
+}
+
+func (uz UnzipperImpl) Unzip(zipReader *zip.Reader, outDir string) {
+	uz.UnzipFilter(zipReader, outDir, "")
 }
 
 func NewZipReader(zipBin []byte) *zip.Reader {
