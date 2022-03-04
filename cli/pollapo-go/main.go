@@ -13,7 +13,7 @@ func main() {
 		EnableBashCompletion: true,
 		Name:                 "pollapo-go",
 		Usage:                "Protobuf dependency installer",
-		Version:              "0.2.5",
+		Version:              "0.3.0",
 		Commands: []*cli.Command{
 			&cmds.CommandInstall,
 			&cmds.CommandLogin,
