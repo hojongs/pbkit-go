@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sort"
 
+	"github.com/Masterminds/semver"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/cache"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/github"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/log"
@@ -215,12 +216,35 @@ func cacheKeyOf(dep pollapo.PollapoDep) string {
 	return fmt.Sprintf("%v-%v-%v.zip", dep.Owner, dep.Repo, dep.Ref)
 }
 
-func latestRef(refs []string) string {
-	// TODO: get latest if semver
-	// https://github.com/pbkit/pbkit/blob/main/cli/pollapo/rev.ts#L7
+type RefArray []string
+
+func (refa RefArray) Len() int {
+	return len(refa)
+}
+
+func (refs RefArray) Less(i, j int) bool {
+	aa, erra := semver.NewVersion(refs[i])
+	bb, errb := semver.NewVersion(refs[j])
+	if erra == nil && errb != nil { // aa is only semver
+		return false
+	}
+	if erra != nil && errb == nil { // bb is only semver
+		return true
+	}
+	if erra == nil && errb == nil { // both aa and bb are semvers
+		return aa.Compare(bb) < 0
+	}
+	return refs[i] < refs[j]
+}
+
+func (refs RefArray) Swap(i, j int) {
+	refs[i], refs[j] = refs[j], refs[i]
+}
+
+func latestRef(refs RefArray) string {
 	sortedRefs := refs
-	sort.Strings(sortedRefs)
-	return sortedRefs[0]
+	sort.Sort(sortedRefs)
+	return refs[len(refs)-1]
 }
 
 func (cmd cmdInstall) downloadZip(dep pollapo.PollapoDep) *zip.Reader {

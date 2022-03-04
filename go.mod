@@ -26,6 +26,7 @@ require (
 )
 
 require (
+	github.com/Masterminds/semver v1.5.0
 	github.com/cli/oauth v0.9.0
 	github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d // indirect
 	github.com/fatih/color v1.13.0
