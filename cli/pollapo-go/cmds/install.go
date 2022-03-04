@@ -79,7 +79,7 @@ var CommandInstall = cli.Command{
 			myzip.UnzipperImpl{},
 			pollapo.FileConfigLoader{},
 			cache.NewFileSystemCache(),
-			c.Bool("verbose"),
+			c.Bool("verbose"), // TODO: pass verbose printer rather than bool
 		).Install()
 		return nil
 	},
@@ -122,7 +122,7 @@ func (cmd cmdInstall) Install() {
 			log.Fatalw("Unknown error. Please retry.", err)
 		}
 		fmt.Printf("%s not found.\n", mycolor.Red(absPath))
-		// TODO: Create absPath?
+		// TODO: Ask to create pollapo.yml
 		os.Exit(1)
 	}
 	cmd.printfIfVerbose("Clean out directory %s.\n", mycolor.Yellow(cmd.outDir))
@@ -153,28 +153,36 @@ func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 		// TODO: froms are unused. command 'why' will use it maybe.
 		putDepIntoMap(depsMap, dep, origin)
 
-		// get dependency zip
-		// TODO: get dependency pollapo yml rather than zip
-		zipBin, err := cmd.cache.Get(cacheKeyOf(dep, "zip"))
-		var zipReader *zip.Reader = nil
-		if err != nil || zipBin == nil {
-			zipReader = cmd.downloadZip(dep)
-		} else {
-			fmt.Printf("Use cache of %s.\n", mycolor.Yellow(depTxt))
-			zipReader = myzip.NewZipReader(zipBin)
-		}
-
-		// cache pollapo.yml
-		cacheOutDir := filepath.Join(cmd.cache.GetRootLocation())
-		pollapoFile := myzip.GetFileByName(zipReader, "pollapo.yml")
-		depPollapoYmlPath := filepath.Join(cacheOutDir, cacheKeyOf(dep, "yml"))
-		myzip.SaveUnzippedFile(pollapoFile, depPollapoYmlPath)
-
-		// get pollapo config
-		depCfg, err := cmd.loader.GetPollapoConfig(depPollapoYmlPath)
+		// get pollapo config of current dep & enqueue deps of the config
+		var depCfg pollapo.PollapoConfig
+		depCfgBin, err := cmd.cache.Get(cacheKeyOf(dep, "yml"))
 		if err != nil {
-			cmd.printfIfVerbose("pollapo.yml not found %s\n", mycolor.Yellow(depPollapoYmlPath))
+			cmd.printfIfVerbose("cache yml not found %s\n", mycolor.Yellow(cacheKeyOf(dep, "yml")))
+			var zipBin []byte
+			zipBin, err = cmd.cache.Get(cacheKeyOf(dep, "zip"))
+			var zipReader *zip.Reader = nil
+			if err != nil || zipBin == nil {
+				cmd.printfIfVerbose("cache zip not found %s\n", mycolor.Yellow(cacheKeyOf(dep, "zip")))
+				zipReader = cmd.downloadZip(dep)
+			} else {
+				fmt.Printf("Use cache of %s.\n", mycolor.Yellow(depTxt))
+				zipReader = myzip.NewZipReader(zipBin)
+			}
+
+			// cache pollapo.yml
+			cacheOutDir := filepath.Join(cmd.cache.GetRootLocation())
+			pollapoFile := myzip.GetFileByName(zipReader, "pollapo.yml")
+			depPollapoYmlPath := filepath.Join(cacheOutDir, cacheKeyOf(dep, "yml"))
+			myzip.SaveUnzippedFile(pollapoFile, depPollapoYmlPath)
+			depCfg, err = cmd.loader.GetPollapoConfig(depPollapoYmlPath)
+			if err != nil {
+				cmd.printfIfVerbose("pollapo.yml not found %s\n", mycolor.Yellow(depPollapoYmlPath))
+			}
 		} else {
+			cmd.printfIfVerbose("cache yml found %s\n", mycolor.Yellow(cacheKeyOf(dep, "yml")))
+			depCfg, err = pollapo.ParsePollapo(depCfgBin), nil
+		}
+		if err == nil {
 			for _, dep := range depCfg.Deps {
 				cmd.printfIfVerbose("Enqueue %s.\n", mycolor.Yellow(dep))
 			}
