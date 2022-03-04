@@ -44,13 +44,13 @@ go install ./cli/pollapo-go
 Run this command once to download zsh_autocomplete, and add a line to your .zshrc
 
 ```sh
-mkdir -p $HOME/.cache/pollapo-go
-curl https://raw.githubusercontent.com/urfave/cli/master/autocomplete/zsh_autocomplete > $HOME/.cache/pollapo-go/zsh_autocomplete
+mkdir -p $HOME/.config/pollapo-go
+curl https://raw.githubusercontent.com/urfave/cli/master/autocomplete/zsh_autocomplete > $HOME/.config/pollapo-go/zsh_autocomplete
 
 
 echo 'PROG=pollapo-go' >> $HOME/.zshrc
 echo '_CLI_ZSH_AUTOCOMPLETE_HACK=1' >> $HOME/.zshrc
-echo '. $HOME/.cache/pollapo-go/zsh_autocomplete' >> $HOME/.zshrc
+echo '. $HOME/.config/pollapo-go/zsh_autocomplete' >> $HOME/.zshrc
 ```
 
 For more detail

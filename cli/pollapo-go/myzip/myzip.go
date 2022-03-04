@@ -20,16 +20,21 @@ type UnzipperImpl struct{}
 
 func (uz UnzipperImpl) UnzipFilter(zipReader *zip.Reader, outDir string, filter string) {
 	for _, f := range zipReader.File[1:] {
+		// validate file path prefix
 		i := strings.Index(f.Name, "/")
-		// log.Infow("Unzip", "filepath", f.Name[i+1:])
-		fpath := filepath.Join(outDir, f.Name[i+1:])
-		if filter != "" && fpath != filter {
-			continue
-		}
+		fname := f.Name[i+1:]
+		// log.Infow("Unzip", "filepath", fname)
+		fpath := filepath.Join(outDir, fname)
 		if !strings.HasPrefix(fpath, filepath.Clean(outDir)+string(os.PathSeparator)) {
 			log.Fatalw("Failed to unzip: invalid path", nil, "path", fpath)
 		}
 
+		// filter filename to unzip
+		if filter != "" && fname != filter {
+			continue
+		}
+
+		// mkdir
 		if f.FileInfo().IsDir() {
 			os.MkdirAll(fpath, 0755)
 			continue
@@ -38,17 +43,16 @@ func (uz UnzipperImpl) UnzipFilter(zipReader *zip.Reader, outDir string, filter 
 			log.Fatalw("Failed to unzip", err)
 		}
 
+		// save unzipped file
 		outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
 		if err != nil {
 			log.Fatalw("Failed to unzip", err)
 		}
-
 		rc, err := f.Open()
 		if err != nil {
 			log.Fatalw("Failed to unzip", err)
 		}
 		_, err = io.Copy(outFile, rc)
-
 		// Close the file without defer so that
 		// it closes the outfile before the loop
 		// moves to the next iteration. this kinda
@@ -56,7 +60,6 @@ func (uz UnzipperImpl) UnzipFilter(zipReader *zip.Reader, outDir string, filter 
 		// the worst case scenario.
 		outFile.Close()
 		rc.Close()
-
 		if err != nil {
 			log.Fatalw("Failed to unzip", err)
 		}

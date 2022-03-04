@@ -133,13 +133,16 @@ func (cmd cmdInstall) Install() {
 }
 
 func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
-	cacheStoreTaskQueue := []string{}
-	cacheStoreTaskQueue = append(cacheStoreTaskQueue, rootCfg.Deps...)
+	depHandleQueue := []string{}
+	for _, dep := range rootCfg.Deps {
+		cmd.printfIfVerbose("Enqueue %s.\n", mycolor.Yellow(dep))
+	}
+	depHandleQueue = append(depHandleQueue, rootCfg.Deps...)
 	depsMap := map[string]map[string][]string{} // depsMap[user/repo][ref]=froms
 	origin := "<root>"
-	for len(cacheStoreTaskQueue) > 0 {
-		depTxt := cacheStoreTaskQueue[0]
-		cacheStoreTaskQueue = cacheStoreTaskQueue[1:]
+	for len(depHandleQueue) > 0 {
+		depTxt := depHandleQueue[0]
+		depHandleQueue = depHandleQueue[1:]
 
 		dep, isOk := pollapo.ParseDep(depTxt)
 		if !isOk {
@@ -147,16 +150,9 @@ func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 		}
 
 		// TODO: froms are unused. command 'why' will use it maybe.
-		f := func(dep pollapo.PollapoDep) string { return dep.Owner + "/" + dep.Repo }
-		if depsMap[f(dep)] == nil {
-			depsMap[f(dep)] = map[string][]string{}
-		}
-		if depsMap[f(dep)][dep.Ref] != nil {
-			depsMap[f(dep)][dep.Ref] = append(depsMap[f(dep)][dep.Ref], origin)
-		} else {
-			depsMap[f(dep)][dep.Ref] = []string{origin}
-		}
+		putDepIntoMap(depsMap, dep, origin)
 
+		// get dependency zip
 		zipBin, err := cmd.cache.Get(cacheKeyOf(dep))
 		var zipReader *zip.Reader = nil
 		if err != nil || zipBin == nil {
@@ -165,14 +161,23 @@ func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 			fmt.Printf("Use cache of %s.\n", mycolor.Yellow(depTxt))
 			zipReader = myzip.NewZipReader(zipBin)
 		}
+
+		// unzip pollapo.yml
 		cacheOutDir := filepath.Join(cmd.cache.GetRootLocation(), dep.Owner, dep.Repo)
 		cmd.uz.UnzipFilter(zipReader, cacheOutDir, "pollapo.yml")
 
+		// get pollapo config
 		depPollapoYmlPath := filepath.Join(cacheOutDir, "pollapo.yml")
 		depCfg, err := cmd.loader.GetPollapoConfig(depPollapoYmlPath)
-		if err == nil {
-			cacheStoreTaskQueue = append(cacheStoreTaskQueue, depCfg.Deps...)
+		if err != nil {
+			cmd.printfIfVerbose("pollapo.yml not found %s\n", mycolor.Yellow(depPollapoYmlPath))
+		} else {
+			for _, dep := range depCfg.Deps {
+				cmd.printfIfVerbose("Enqueue %s.\n", mycolor.Yellow(dep))
+			}
+			depHandleQueue = append(depHandleQueue, depCfg.Deps...)
 		}
+
 		origin = depTxt
 	}
 
@@ -232,5 +237,17 @@ func (cmd cmdInstall) printfIfVerbose(format string, a ...interface{}) (n int, e
 		return fmt.Printf(format, a...)
 	} else {
 		return 0, nil
+	}
+}
+
+func putDepIntoMap(depsMap map[string]map[string][]string, dep pollapo.PollapoDep, origin string) {
+	f := func(dep pollapo.PollapoDep) string { return dep.Owner + "/" + dep.Repo }
+	if depsMap[f(dep)] == nil {
+		depsMap[f(dep)] = map[string][]string{}
+	}
+	if depsMap[f(dep)][dep.Ref] != nil {
+		depsMap[f(dep)][dep.Ref] = append(depsMap[f(dep)][dep.Ref], origin)
+	} else {
+		depsMap[f(dep)][dep.Ref] = []string{origin}
 	}
 }
