@@ -46,10 +46,16 @@ Run this command once to download zsh_autocomplete, and add a line to your .zshr
 ```sh
 mkdir -p $HOME/.cache/pollapo-go
 curl https://raw.githubusercontent.com/urfave/cli/master/autocomplete/zsh_autocomplete > $HOME/.cache/pollapo-go/zsh_autocomplete
+
+
+echo 'PROG=pollapo-go' >> $HOME/.zshrc
+echo '_CLI_ZSH_AUTOCOMPLETE_HACK=1' >> $HOME/.zshrc
 echo '. $HOME/.cache/pollapo-go/zsh_autocomplete' >> $HOME/.zshrc
 ```
 
-For more detail: https://github.com/urfave/cli/blob/master/docs/v2/manual.md#distribution-and-persistent-autocompletion
+For more detail
+- Bash: https://github.com/urfave/cli/blob/master/docs/v2/manual.md#distribution-and-persistent-autocompletion
+- Zsh: https://github.com/urfave/cli/blob/master/docs/v2/manual.md#zsh-support
 
 ## Run Test
 
