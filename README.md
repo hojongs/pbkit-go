@@ -37,6 +37,20 @@ go install ./cli/pollapo-go
 
 ![image](https://user-images.githubusercontent.com/15096588/156098974-922c4269-2b4a-4d27-a0f0-b0818aa94bd1.png)
 
+## Auto completion
+
+### Zsh
+
+Run this command once to download zsh_autocomplete, and add a line to your .zshrc
+
+```sh
+mkdir -p $HOME/.cache/pollapo-go
+curl https://raw.githubusercontent.com/urfave/cli/master/autocomplete/zsh_autocomplete > $HOME/.cache/pollapo-go/zsh_autocomplete
+echo '. $HOME/.cache/pollapo-go/zsh_autocomplete' >> $HOME/.zshrc
+```
+
+For more detail: https://github.com/urfave/cli/blob/master/docs/v2/manual.md#distribution-and-persistent-autocompletion
+
 ## Run Test
 
 ```sh

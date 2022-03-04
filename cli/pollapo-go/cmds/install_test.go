@@ -39,6 +39,7 @@ func TestInstallConfig(t *testing.T) {
 		uz,
 		pollapo.FileConfigLoader{},
 		cache.EmptyCache{}, // Don't use cache
+		true,
 	).installDepsRecursive(
 		pollapo.PollapoConfig{Deps: []string{"google/apis@dbfbfdb"}},
 	)

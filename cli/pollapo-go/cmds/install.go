@@ -22,8 +22,14 @@ var CommandInstall = cli.Command{
 	Usage:   "Install dependencies.",
 	Flags: []cli.Flag{
 		&cli.BoolFlag{
+			Name:    "verbose",
+			Aliases: []string{"v"},
+			Usage:   "Print verbose logs",
+			Value:   false,
+		},
+		&cli.BoolFlag{
 			Name:    "clean",
-			Aliases: []string{"c"},
+			Aliases: []string{"c", "clean-cache"},
 			Usage:   "Clean cache directory before install",
 			Value:   false,
 		},
@@ -39,17 +45,28 @@ var CommandInstall = cli.Command{
 			Usage:   "GitHub OAuth token",
 		},
 		&cli.StringFlag{
-			Name:    "config",
-			Aliases: []string{"C"},
-			Usage:   "Pollapo yml path",
-			Value:   "pollapo.yml",
+			Name:  "config",
+			Usage: "Pollapo yml path",
+			Value: "pollapo.yml",
 		},
 	},
 	Action: func(c *cli.Context) error {
-		var token string
-		if len(c.String("token")) > 0 {
-			token = c.String("token")
-		} else {
+		if c.Args().Len() >= 2 {
+			fmt.Printf("Arguments are not required.\n")
+			fmt.Printf("Given arguments: count %v, values %v\n", mycolor.Yellow(c.Args().Len()), mycolor.Yellow(c.Args()))
+			os.Exit(1)
+		}
+		if c.Bool("verbose") {
+			fmt.Printf("Flag verbose: %v\n", mycolor.Yellow(c.Bool("verbose")))
+			fmt.Printf("Flag clean: %v\n", mycolor.Yellow(c.Bool("clean")))
+			fmt.Printf("Flag out-dir: %v\n", mycolor.Yellow(c.String("out-dir")))
+			if c.String("token") != "" {
+				fmt.Printf("Flag token: %v\n", mycolor.Yellow(c.String("token")))
+			}
+			fmt.Printf("Flag config: %v\n", mycolor.Yellow(c.String("config")))
+		}
+		token := c.String("token")
+		if token == "" {
 			token = github.GetTokenFromGhHosts()
 		}
 		gc := github.NewClient(token)
@@ -61,6 +78,7 @@ var CommandInstall = cli.Command{
 			myzip.UnzipperImpl{},
 			pollapo.FileConfigLoader{},
 			cache.NewFileSystemCache(),
+			c.Bool("verbose"),
 		).Install()
 		return nil
 	},
@@ -74,6 +92,7 @@ type cmdInstall struct {
 	uz             myzip.Unzipper
 	loader         pollapo.ConfigLoader
 	cache          cache.Cache
+	verbose        bool
 }
 
 func newCmdInstall(
@@ -84,8 +103,9 @@ func newCmdInstall(
 	uz myzip.Unzipper,
 	loader pollapo.ConfigLoader,
 	cache cache.Cache,
+	verbose bool,
 ) cmdInstall {
-	return cmdInstall{cleanCache, outDir, pollapoYmlPath, zd, uz, loader, cache}
+	return cmdInstall{cleanCache, outDir, pollapoYmlPath, zd, uz, loader, cache, verbose}
 }
 
 func (cmd cmdInstall) Install() {
@@ -100,10 +120,11 @@ func (cmd cmdInstall) Install() {
 		if err != nil {
 			log.Fatalw("Unknown error. Please retry.", err)
 		}
-		fmt.Printf("\"%s\" not found.\n", mycolor.Red(absPath))
+		fmt.Printf("%s not found.\n", mycolor.Red(absPath))
 		// TODO: Create absPath?
 		os.Exit(1)
 	}
+	cmd.printfIfVerbose("Clean out directory %s.\n", mycolor.Yellow(cmd.outDir))
 	if err := os.RemoveAll(cmd.outDir); err != nil {
 		log.Fatalw("Remove out dir", err, "outDir", cmd.outDir)
 	}
@@ -112,20 +133,21 @@ func (cmd cmdInstall) Install() {
 }
 
 func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
-	cacheQueue := []string{}
-	cacheQueue = append(cacheQueue, rootCfg.Deps...)
+	cacheStoreTaskQueue := []string{}
+	cacheStoreTaskQueue = append(cacheStoreTaskQueue, rootCfg.Deps...)
 	depsMap := map[string]map[string][]string{} // depsMap[user/repo][ref]=froms
 	origin := "<root>"
-	for len(cacheQueue) > 0 {
-		depTxt := cacheQueue[0]
-		cacheQueue = cacheQueue[1:]
+	for len(cacheStoreTaskQueue) > 0 {
+		depTxt := cacheStoreTaskQueue[0]
+		cacheStoreTaskQueue = cacheStoreTaskQueue[1:]
 
 		dep, isOk := pollapo.ParseDep(depTxt)
-
-		f := func(dep pollapo.PollapoDep) string { return dep.Owner + "/" + dep.Repo }
 		if !isOk {
 			log.Fatalw("Invalid dep", nil, "dep", depTxt)
 		}
+
+		// TODO: froms are unused. command 'why' will use it maybe.
+		f := func(dep pollapo.PollapoDep) string { return dep.Owner + "/" + dep.Repo }
 		if depsMap[f(dep)] == nil {
 			depsMap[f(dep)] = map[string][]string{}
 		}
@@ -149,7 +171,7 @@ func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 		depPollapoYmlPath := filepath.Join(cacheOutDir, "pollapo.yml")
 		depCfg, err := cmd.loader.GetPollapoConfig(depPollapoYmlPath)
 		if err == nil {
-			cacheQueue = append(cacheQueue, depCfg.Deps...)
+			cacheStoreTaskQueue = append(cacheStoreTaskQueue, depCfg.Deps...)
 		}
 		origin = depTxt
 	}
@@ -203,4 +225,12 @@ func (cmd cmdInstall) downloadZip(dep pollapo.PollapoDep) *zip.Reader {
 	cmd.cache.Store(cacheKeyOf(dep), zipBin)
 	fmt.Print(" Stored Cache.\n")
 	return zipReader
+}
+
+func (cmd cmdInstall) printfIfVerbose(format string, a ...interface{}) (n int, err error) {
+	if cmd.verbose {
+		return fmt.Printf(format, a...)
+	} else {
+		return 0, nil
+	}
 }
