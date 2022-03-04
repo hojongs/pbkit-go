@@ -154,7 +154,8 @@ func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 		putDepIntoMap(depsMap, dep, origin)
 
 		// get dependency zip
-		zipBin, err := cmd.cache.Get(cacheKeyOf(dep))
+		// TODO: get dependency pollapo yml rather than zip
+		zipBin, err := cmd.cache.Get(cacheKeyOf(dep, "zip"))
 		var zipReader *zip.Reader = nil
 		if err != nil || zipBin == nil {
 			zipReader = cmd.downloadZip(dep)
@@ -163,12 +164,13 @@ func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 			zipReader = myzip.NewZipReader(zipBin)
 		}
 
-		// unzip pollapo.yml
-		cacheOutDir := filepath.Join(cmd.cache.GetRootLocation(), dep.Owner, dep.Repo)
-		cmd.uz.UnzipFilter(zipReader, cacheOutDir, "pollapo.yml")
+		// cache pollapo.yml
+		cacheOutDir := filepath.Join(cmd.cache.GetRootLocation())
+		pollapoFile := myzip.GetFileByName(zipReader, "pollapo.yml")
+		depPollapoYmlPath := filepath.Join(cacheOutDir, cacheKeyOf(dep, "yml"))
+		myzip.SaveUnzippedFile(pollapoFile, depPollapoYmlPath)
 
 		// get pollapo config
-		depPollapoYmlPath := filepath.Join(cacheOutDir, "pollapo.yml")
 		depCfg, err := cmd.loader.GetPollapoConfig(depPollapoYmlPath)
 		if err != nil {
 			cmd.printfIfVerbose("pollapo.yml not found %s\n", mycolor.Yellow(depPollapoYmlPath))
@@ -199,7 +201,7 @@ func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 			log.Fatalw("Failed to parse dep", nil, "dep", depTxt)
 		}
 		depOutDir := filepath.Join(cmd.outDir, dep.Owner, dep.Repo)
-		zipBin, err := cmd.cache.Get(cacheKeyOf(dep))
+		zipBin, err := cmd.cache.Get(cacheKeyOf(dep, "zip"))
 		var zipReader *zip.Reader = nil
 		if err != nil || zipBin == nil {
 			zipReader = cmd.downloadZip(dep)
@@ -212,8 +214,8 @@ func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 	}
 }
 
-func cacheKeyOf(dep pollapo.PollapoDep) string {
-	return fmt.Sprintf("%v-%v-%v.zip", dep.Owner, dep.Repo, dep.Ref)
+func cacheKeyOf(dep pollapo.PollapoDep, fileExt string) string {
+	return fmt.Sprintf("%v-%v-%v.%v", dep.Owner, dep.Repo, dep.Ref, fileExt)
 }
 
 type RefArray []string
@@ -251,7 +253,7 @@ func (cmd cmdInstall) downloadZip(dep pollapo.PollapoDep) *zip.Reader {
 	// log.Infow("Cache not found", "dep", mycolor.Yellow(cacheKeyOf(dep)))
 	zipReader, zipBin := cmd.zd.GetZip(dep.Owner, dep.Repo, dep.Ref)
 	fmt.Print("ok.")
-	cmd.cache.Store(cacheKeyOf(dep), zipBin)
+	cmd.cache.Store(cacheKeyOf(dep, "zip"), zipBin)
 	fmt.Print(" Stored Cache.\n")
 	return zipReader
 }

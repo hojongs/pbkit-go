@@ -13,12 +13,29 @@ import (
 
 type Unzipper interface {
 	Unzip(zipReader *zip.Reader, outDir string)
-	UnzipFilter(zipReader *zip.Reader, outDir string, filter string)
 }
 
 type UnzipperImpl struct{}
 
-func (uz UnzipperImpl) UnzipFilter(zipReader *zip.Reader, outDir string, filter string) {
+func GetFileByName(zipReader *zip.Reader, match string) *zip.File {
+	var pollapoFile *zip.File
+	for _, f := range zipReader.File[1:] {
+		// validate file path prefix
+		i := strings.Index(f.Name, "/")
+		fname := f.Name[i+1:]
+		if fname == match {
+			pollapoFile = f
+			break
+		}
+	}
+	return pollapoFile
+}
+
+func Open(f *zip.File) (io.ReadCloser, error) {
+	return f.Open()
+}
+
+func (uz UnzipperImpl) Unzip(zipReader *zip.Reader, outDir string) {
 	for _, f := range zipReader.File[1:] {
 		// validate file path prefix
 		i := strings.Index(f.Name, "/")
@@ -27,11 +44,6 @@ func (uz UnzipperImpl) UnzipFilter(zipReader *zip.Reader, outDir string, filter 
 		fpath := filepath.Join(outDir, fname)
 		if !strings.HasPrefix(fpath, filepath.Clean(outDir)+string(os.PathSeparator)) {
 			log.Fatalw("Failed to unzip: invalid path", nil, "path", fpath)
-		}
-
-		// filter filename to unzip
-		if filter != "" && fname != filter {
-			continue
 		}
 
 		// mkdir
@@ -43,31 +55,8 @@ func (uz UnzipperImpl) UnzipFilter(zipReader *zip.Reader, outDir string, filter 
 			log.Fatalw("Failed to unzip", err)
 		}
 
-		// save unzipped file
-		outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
-		if err != nil {
-			log.Fatalw("Failed to unzip", err)
-		}
-		rc, err := f.Open()
-		if err != nil {
-			log.Fatalw("Failed to unzip", err)
-		}
-		_, err = io.Copy(outFile, rc)
-		// Close the file without defer so that
-		// it closes the outfile before the loop
-		// moves to the next iteration. this kinda
-		// saves an iteration of memory & time in
-		// the worst case scenario.
-		outFile.Close()
-		rc.Close()
-		if err != nil {
-			log.Fatalw("Failed to unzip", err)
-		}
+		SaveUnzippedFile(f, fpath)
 	}
-}
-
-func (uz UnzipperImpl) Unzip(zipReader *zip.Reader, outDir string) {
-	uz.UnzipFilter(zipReader, outDir, "")
 }
 
 func NewZipReader(zipBin []byte) *zip.Reader {
@@ -76,4 +65,21 @@ func NewZipReader(zipBin []byte) *zip.Reader {
 		log.Fatalw("Read zip", err)
 	}
 	return zipReader
+}
+
+func SaveUnzippedFile(f *zip.File, fpath string) {
+	outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+	if err != nil {
+		log.Fatalw("Failed to unzip", err)
+	}
+	defer outFile.Close()
+	rc, err := f.Open()
+	if err != nil {
+		log.Fatalw("Failed to unzip", err)
+	}
+	defer rc.Close()
+	_, err = io.Copy(outFile, rc)
+	if err != nil {
+		log.Fatalw("Failed to unzip", err)
+	}
 }
