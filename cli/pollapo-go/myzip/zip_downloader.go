@@ -25,7 +25,6 @@ func NewGitHubZipDownloader(client github.Client) GitHubZipDownloader {
 }
 
 func (gzd GitHubZipDownloader) GetZip(owner string, repo string, ref string) (*zip.Reader, []byte) {
-	// TODO: github authentication with token
 	zipUrl := gzd.client.GetZipLink(owner, repo, ref)
 	fmt.Printf("Downloading %s...", mycolor.Yellow(owner+"/"+repo+"@"+ref))
 	resp, err := http.Get(zipUrl)
@@ -36,11 +35,26 @@ func (gzd GitHubZipDownloader) GetZip(owner string, repo string, ref string) (*z
 	if resp.StatusCode != 200 {
 		log.Fatalw("HTTP Response is not OK", nil, "status", resp.StatusCode)
 	}
-	zipBin, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalw("Failed to Read HTTP Response body", err, "body", zipBin[:1024])
-	}
+	zipBin := readAll(resp.Body)
 	zipReader := NewZipReader(zipBin)
 
 	return zipReader, zipBin
+}
+
+func readAll(reader io.Reader) []byte {
+	// TODO: print progress if verbose for slow network
+	// currSize := int64(0)
+	// pr := &ProgressReader{reader, func(r int64) {
+	// 	currSize += r
+	// 	if r > 0 {
+	// 		fmt.Println(currSize)
+	// 	} else {
+	// 		fmt.Println("Downloaded")
+	// 	}
+	// }}
+	zipBin, err := io.ReadAll(reader)
+	if err != nil {
+		log.Fatalw("Failed to Read HTTP Response body", err, "body", zipBin[:1024])
+	}
+	return zipBin
 }

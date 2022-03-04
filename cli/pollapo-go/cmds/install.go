@@ -3,6 +3,7 @@ package cmds
 import (
 	"archive/zip"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -164,17 +165,20 @@ func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 			zipReader = myzip.NewZipReader(zipBin)
 		}
 
-		// cache pollapo.yml
-		cacheOutDir := filepath.Join(cmd.cache.GetRootLocation())
+		// read pollapo.yml & enqueue deps
 		pollapoFile := myzip.GetFileByName(zipReader, "pollapo.yml")
-		depPollapoYmlPath := filepath.Join(cacheOutDir, cacheKeyOf(dep, "yml"))
-		myzip.SaveUnzippedFile(pollapoFile, depPollapoYmlPath)
-
-		// get pollapo config
-		depCfg, err := cmd.loader.GetPollapoConfig(depPollapoYmlPath)
-		if err != nil {
-			cmd.printfIfVerbose("pollapo.yml not found %s\n", mycolor.Yellow(depPollapoYmlPath))
-		} else {
+		if pollapoFile != nil {
+			// get pollapo config
+			rc, err := pollapoFile.Open()
+			if err != nil {
+				log.Fatalw("Failed to open pollapo file", err)
+			}
+			bin, err := io.ReadAll(rc)
+			rc.Close()
+			if err != nil {
+				log.Fatalw("Failed to read pollapo file", err)
+			}
+			depCfg := pollapo.ParsePollapo(bin)
 			for _, dep := range depCfg.Deps {
 				cmd.printfIfVerbose("Enqueue %s.\n", mycolor.Yellow(dep))
 			}
@@ -201,6 +205,7 @@ func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 			log.Fatalw("Failed to parse dep", nil, "dep", depTxt)
 		}
 		depOutDir := filepath.Join(cmd.outDir, dep.Owner, dep.Repo)
+		// TODO: 2 layer cache: in-memory, fs
 		zipBin, err := cmd.cache.Get(cacheKeyOf(dep, "zip"))
 		var zipReader *zip.Reader = nil
 		if err != nil || zipBin == nil {
