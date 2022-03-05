@@ -18,17 +18,14 @@ type Unzipper interface {
 type UnzipperImpl struct{}
 
 func GetFileByName(zipReader *zip.Reader, match string) *zip.File {
-	var pollapoFile *zip.File
 	for _, f := range zipReader.File[1:] {
-		// validate file path prefix
 		i := strings.Index(f.Name, "/")
 		fname := f.Name[i+1:]
 		if fname == match {
-			pollapoFile = f
-			break
+			return f
 		}
 	}
-	return pollapoFile
+	return nil
 }
 
 func Open(f *zip.File) (io.ReadCloser, error) {

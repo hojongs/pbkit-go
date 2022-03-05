@@ -123,7 +123,7 @@ func (cmd cmdInstall) Install() {
 			log.Fatalw("Unknown error. Please retry.", err)
 		}
 		fmt.Printf("%s not found.\n", mycolor.Red(absPath))
-		// TODO: Create absPath?
+		// TODO: Ask create pollapo.yml
 		os.Exit(1)
 	}
 	cmd.printfIfVerbose("Clean out directory %s.\n", mycolor.Yellow(cmd.outDir))
@@ -135,21 +135,23 @@ func (cmd cmdInstall) Install() {
 }
 
 func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
-	depHandleQueue := []string{}
+	depHandleQueue := []pollapo.PollapoDep{}
 	for _, dep := range rootCfg.Deps {
 		cmd.printfIfVerbose("Enqueue %s.\n", mycolor.Yellow(dep))
 	}
-	depHandleQueue = append(depHandleQueue, rootCfg.Deps...)
-	depsMap := map[string]map[string][]string{} // depsMap[user/repo][ref]=froms
-	origin := "<root>"
-	for len(depHandleQueue) > 0 {
-		depTxt := depHandleQueue[0]
-		depHandleQueue = depHandleQueue[1:]
-
+	for _, depTxt := range rootCfg.Deps {
 		dep, isOk := pollapo.ParseDep(depTxt)
 		if !isOk {
 			log.Fatalw("Invalid dep", nil, "dep", depTxt)
 		}
+		depHandleQueue = append(depHandleQueue, dep)
+	}
+	depsMap := map[string]map[string][]string{} // depsMap[user/repo][ref]=froms
+	origin := "<root>"
+	// TODO: refactor loop into async with goroutine, channel
+	for len(depHandleQueue) > 0 {
+		dep := depHandleQueue[0]
+		depHandleQueue = depHandleQueue[1:]
 
 		// TODO: froms are unused. command 'why' will use it maybe.
 		putDepIntoMap(depsMap, dep, origin)
@@ -159,9 +161,9 @@ func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 		zipBin, err := cmd.cache.Get(cacheKeyOf(dep, "zip"))
 		var zipReader *zip.Reader = nil
 		if err != nil || zipBin == nil {
-			zipReader = cmd.downloadZip(dep)
+			zipReader = cmd.getAndCacheZip(dep)
 		} else {
-			fmt.Printf("Use cache of %s.\n", mycolor.Yellow(depTxt))
+			fmt.Printf("Use cache of %s.\n", mycolor.Yellow(dep.String()))
 			zipReader = myzip.NewZipReader(zipBin)
 		}
 
@@ -179,13 +181,17 @@ func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 				log.Fatalw("Failed to read pollapo file", err)
 			}
 			depCfg := pollapo.ParsePollapo(bin)
-			for _, dep := range depCfg.Deps {
+			for _, depTxt := range depCfg.Deps {
+				dep, isOk := pollapo.ParseDep(depTxt)
+				if !isOk {
+					log.Fatalw("Invalid dep", nil, "dep", depTxt)
+				}
+				depHandleQueue = append(depHandleQueue, dep)
 				cmd.printfIfVerbose("Enqueue %s.\n", mycolor.Yellow(dep))
 			}
-			depHandleQueue = append(depHandleQueue, depCfg.Deps...)
 		}
 
-		origin = depTxt
+		origin = dep.String()
 	}
 
 	latestDeps := []string{}
@@ -209,7 +215,7 @@ func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 		zipBin, err := cmd.cache.Get(cacheKeyOf(dep, "zip"))
 		var zipReader *zip.Reader = nil
 		if err != nil || zipBin == nil {
-			zipReader = cmd.downloadZip(dep)
+			zipReader = cmd.getAndCacheZip(dep)
 		} else {
 			zipReader = myzip.NewZipReader(zipBin)
 		}
@@ -254,7 +260,7 @@ func latestRef(refs RefArray) string {
 	return refs[len(refs)-1]
 }
 
-func (cmd cmdInstall) downloadZip(dep pollapo.PollapoDep) *zip.Reader {
+func (cmd cmdInstall) getAndCacheZip(dep pollapo.PollapoDep) *zip.Reader {
 	// log.Infow("Cache not found", "dep", mycolor.Yellow(cacheKeyOf(dep)))
 	zipReader, zipBin := cmd.zd.GetZip(dep.Owner, dep.Repo, dep.Ref)
 	fmt.Print("ok.")
