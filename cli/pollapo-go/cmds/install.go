@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"sync"
 
 	"github.com/Masterminds/semver"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/cache"
@@ -148,50 +149,52 @@ func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 	}
 	depsMap := map[string]map[string][]string{} // depsMap[user/repo][ref]=froms
 	origin := "<root>"
-	// TODO: refactor loop into async with goroutine, channel
 	for len(depHandleQueue) > 0 {
-		dep := depHandleQueue[0]
-		depHandleQueue = depHandleQueue[1:]
+		// cache zips concurrently
+		wg := sync.WaitGroup{}
+		wg.Add(len(depHandleQueue))
+		for _, dep := range depHandleQueue {
+			go cmd.cacheZipIfMiss(dep, &wg)
+		}
+		wg.Wait()
 
-		// TODO: froms are unused. command 'why' will use it maybe.
-		putDepIntoMap(depsMap, dep, origin)
+		queue := []pollapo.PollapoDep{}
+		for _, dep := range depHandleQueue {
+			// TODO: froms are unused. command 'why' will use it maybe.
+			putDepIntoMap(depsMap, dep, origin)
 
-		// get dependency zip
-		// TODO: get dependency pollapo yml rather than zip
-		zipBin, err := cmd.cache.Get(cacheKeyOf(dep, "zip"))
-		var zipReader *zip.Reader = nil
-		if err != nil || zipBin == nil {
-			zipReader = cmd.getAndCacheZip(dep)
-		} else {
-			fmt.Printf("Use cache of %s.\n", mycolor.Yellow(dep.String()))
+			// get dependency zip (the dep cached)
+			var zipReader *zip.Reader = nil
+			zipBin, _ := cmd.cache.Get(cacheKeyOf(dep, "zip"))
 			zipReader = myzip.NewZipReader(zipBin)
-		}
 
-		// read pollapo.yml & enqueue deps
-		pollapoFile := myzip.GetFileByName(zipReader, "pollapo.yml")
-		if pollapoFile != nil {
-			// get pollapo config
-			rc, err := pollapoFile.Open()
-			if err != nil {
-				log.Fatalw("Failed to open pollapo file", err)
-			}
-			bin, err := io.ReadAll(rc)
-			rc.Close()
-			if err != nil {
-				log.Fatalw("Failed to read pollapo file", err)
-			}
-			depCfg := pollapo.ParsePollapo(bin)
-			for _, depTxt := range depCfg.Deps {
-				dep, isOk := pollapo.ParseDep(depTxt)
-				if !isOk {
-					log.Fatalw("Invalid dep", nil, "dep", depTxt)
+			// read pollapo.yml & enqueue deps
+			pollapoFile := myzip.GetFileByName(zipReader, "pollapo.yml")
+			if pollapoFile != nil {
+				// get pollapo config
+				rc, err := pollapoFile.Open()
+				if err != nil {
+					log.Fatalw("Failed to open pollapo file", err)
 				}
-				depHandleQueue = append(depHandleQueue, dep)
-				cmd.printfIfVerbose("Enqueue %s.\n", mycolor.Yellow(dep))
+				bin, err := io.ReadAll(rc)
+				rc.Close()
+				if err != nil {
+					log.Fatalw("Failed to read pollapo file", err)
+				}
+				depCfg := pollapo.ParsePollapo(bin)
+				for _, depTxt := range depCfg.Deps {
+					dep, isOk := pollapo.ParseDep(depTxt)
+					if !isOk {
+						log.Fatalw("Invalid dep", nil, "dep", depTxt)
+					}
+					queue = append(queue, dep)
+					cmd.printfIfVerbose("Enqueue %s.\n", mycolor.Yellow(dep))
+				}
 			}
-		}
 
-		origin = dep.String()
+			origin = dep.String()
+		}
+		depHandleQueue = queue
 	}
 
 	latestDeps := []string{}
@@ -263,9 +266,7 @@ func latestRef(refs RefArray) string {
 func (cmd cmdInstall) getAndCacheZip(dep pollapo.PollapoDep) *zip.Reader {
 	// log.Infow("Cache not found", "dep", mycolor.Yellow(cacheKeyOf(dep)))
 	zipReader, zipBin := cmd.zd.GetZip(dep.Owner, dep.Repo, dep.Ref)
-	fmt.Print("ok.")
 	cmd.cache.Store(cacheKeyOf(dep, "zip"), zipBin)
-	fmt.Print(" Stored Cache.\n")
 	return zipReader
 }
 
@@ -287,4 +288,15 @@ func putDepIntoMap(depsMap map[string]map[string][]string, dep pollapo.PollapoDe
 	} else {
 		depsMap[f(dep)][dep.Ref] = []string{origin}
 	}
+}
+
+func (cmd cmdInstall) cacheZipIfMiss(dep pollapo.PollapoDep, wg *sync.WaitGroup) {
+	if _, err := cmd.cache.Get(cacheKeyOf(dep, "zip")); err != nil {
+		fmt.Printf("Downloading %s...\n", mycolor.Yellow(dep.String()))
+		cmd.getAndCacheZip(dep)
+		fmt.Printf("Stored cache %s\n", mycolor.Yellow(dep.String()))
+	} else {
+		cmd.printfIfVerbose("Found cache of %s.\n", mycolor.Yellow(dep.String()))
+	}
+	wg.Done()
 }
