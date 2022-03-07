@@ -27,6 +27,20 @@ cd pbkit-go
 go install ./cli/pollapo-go
 ```
 
+### Tutorial
+
+```sh
+mkdir pollapo-test && cd pollapo-test
+
+cat <<EOF > pollapo.yml
+deps:
+  - pbkit/interface-lol-champion-server@be26d9a
+EOF
+
+pollapo-go i
+# You can see installed dependencies ./.pollapo/
+```
+
 ### Commands
 
 #### Help
