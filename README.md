@@ -42,7 +42,7 @@ EOF
 pollapo-go i # pollapo-go install --config pollapo.yml --out-dir .pollapo
 ```
 
-Now, you can see the installed dependencies .pollapo/
+Now, you can see the installed dependencies in the `.pollapo/`
 
 ### Commands
 
