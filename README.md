@@ -1,4 +1,4 @@
-# pbkit-go: Pbkit Rewritten in Go
+# pbkit-go: Pbkit written in Go
 
 Original proejct: https://github.com/pbkit/pbkit 
 
