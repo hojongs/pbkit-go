@@ -4,7 +4,7 @@ Original proejct: https://github.com/pbkit/pbkit
 
 > Note: This project is very very early stage !!!
 
-# Pollapo: Protobuf Dependency Installer
+# Pollapo-go: Protobuf Dependency Installer
 
 ## Getting Started
 
@@ -23,11 +23,13 @@ go install -v github.com/hojongs/pbkit-go/cli/pollapo-go@latest
 ```sh
 git clone https://github.com/hojongs/pbkit-go.git
 cd pbkit-go
-# Ensure your working directory is the root of project
+# Ensure your working directory is the root of the project
 go install ./cli/pollapo-go
 ```
 
-### Tutorial
+### Example: `Pollapo-go install`
+
+Here it is the example usage of `pollapo-go install`
 
 ```sh
 mkdir pollapo-test && cd pollapo-test
@@ -37,9 +39,10 @@ deps:
   - pbkit/interface-lol-champion-server@be26d9a
 EOF
 
-pollapo-go i
-# You can see installed dependencies ./.pollapo/
+pollapo-go i # pollapo-go install --config pollapo.yml --out-dir .pollapo
 ```
+
+Now, you can see the installed dependencies .pollapo/
 
 ### Commands
 
