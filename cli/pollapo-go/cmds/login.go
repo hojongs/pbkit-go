@@ -1,10 +1,9 @@
 package cmds
 
 import (
-	"fmt"
-
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/github"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/log"
+	"github.com/hojongs/pbkit-go/cli/pollapo-go/util"
 	"github.com/urfave/cli/v2"
 )
 
@@ -25,6 +24,6 @@ func login() {
 		token = github.TryOauthFlow()
 		github.WriteTokenGhHosts(token)
 	} else {
-		fmt.Println("You're already logged into github.com.")
+		util.Println("You're already logged into github.com.")
 	}
 }

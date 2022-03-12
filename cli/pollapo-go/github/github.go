@@ -2,11 +2,8 @@ package github
 
 import (
 	"context"
-	"fmt"
-	"os"
 
 	"github.com/google/go-github/v42/github"
-	"github.com/hojongs/pbkit-go/cli/pollapo-go/mycolor"
 	"golang.org/x/oauth2"
 )
 
@@ -24,15 +21,13 @@ func NewClient(token string) Client {
 	return Client{client}
 }
 
-func (gc Client) GetZipLink(owner string, repo string, ref string) string {
+func (gc Client) GetZipLink(owner string, repo string, ref string) (string, error) {
 	opts := github.RepositoryContentGetOptions{Ref: ref}
 	url, _, err := gc.client.Repositories.GetArchiveLink(context.Background(), owner, repo, github.Zipball, &opts, true)
 	if err != nil {
-		fmt.Printf("%s\n", mycolor.Red("error"))
-		fmt.Printf("Login required. (%s/%s@%s)\n", owner, repo, ref)
-		os.Exit(1)
+		return "", err
 	}
-	return url.String()
+	return url.String(), nil
 }
 
 func initClientByToken(token string) *github.Client {
