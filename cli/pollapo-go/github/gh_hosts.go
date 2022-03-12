@@ -3,6 +3,7 @@ package github
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/log"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/yaml"
@@ -55,10 +56,16 @@ type GhHost struct {
 }
 
 func getDefaultGhHostsPath() string {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		log.Fatalw("Failed to get home dir", err)
+	var dir string
+	// https://github.com/cli/cli/blob/26d33d6e387857f3d2e34f2529e7b05c7c51535f/internal/config/config_file.go#L29
+	if c := os.Getenv("AppData"); runtime.GOOS == "windows" && c != "" {
+		dir = filepath.Join(c, "GitHub CLI")
+	} else {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			log.Fatalw("Failed to get home dir", err)
+		}
+		dir = filepath.Join(homeDir, ".config", "gh")
 	}
-	dir := filepath.Join(homeDir, ".config/gh")
 	return filepath.Join(dir, "hosts.yml")
 }
