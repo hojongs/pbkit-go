@@ -132,15 +132,31 @@ func (cmd cmdInstall) Install() {
 	if err := os.RemoveAll(cmd.outDir); err != nil {
 		util.Sugar.Fatalw("Remove out dir", err, "outDir", cmd.outDir)
 	}
-	cmd.installDepsRecursive(rootCfg)
+	cmd.installDepsRecursive(&rootCfg)
 	cmd.gc.Flush()
 	cmd.zd.Flush()
+	err = rootCfg.SaveFile(cmd.pollapoYmlPath)
+	if err != nil {
+		util.Sugar.Fatalw("Failed to re-write %s with updated root.lock: %s", cmd.pollapoYmlPath, err)
+	}
 	util.Println("Done.")
 }
 
-func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
+func (cmd cmdInstall) installDepsRecursive(rootCfg *pollapo.PollapoConfig) {
+	putDepIntoMap := func(depsMap map[string]map[string][]string, dep pollapo.PollapoDep, origin string) {
+		f := func(dep pollapo.PollapoDep) string { return dep.Owner + "/" + dep.Repo }
+		if depsMap[f(dep)] == nil {
+			depsMap[f(dep)] = map[string][]string{}
+		}
+		if depsMap[f(dep)][dep.Ref] != nil {
+			depsMap[f(dep)][dep.Ref] = append(depsMap[f(dep)][dep.Ref], origin)
+		} else {
+			depsMap[f(dep)][dep.Ref] = []string{origin}
+		}
+	}
+
 	depHandleQueue := []pollapo.PollapoDep{}
-	for _, dep := range rootCfg.GetDeps(cmd.verbose) {
+	for _, dep := range (*rootCfg).GetDeps(cmd.verbose) {
 		util.PrintfVerbose(logName, cmd.verbose, "Enqueue %s.\n", util.Yellow(dep))
 		depHandleQueue = append(depHandleQueue, dep)
 	}
@@ -162,8 +178,17 @@ func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 		queue := []pollapo.PollapoDep{}
 		for _, dep := range depHandleQueue {
 			// TODO: froms are unused. command 'why' will use it maybe.
+			lockedRef, found := (*rootCfg).GetLock(dep)
+			if !found {
+				commit, err := cmd.gc.GetCommit(dep.Owner, dep.Repo, dep.Ref)
+				if err == nil {
+					(*rootCfg).SetLock(dep, commit)
+					dep.Ref = commit
+				}
+			} else {
+				dep.Ref = lockedRef
+			}
 			putDepIntoMap(depsMap, dep, origin)
-
 			zipReader := cmd.getZip(dep)
 
 			// read pollapo.yml & enqueue deps
@@ -191,6 +216,11 @@ func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 		depHandleQueue = queue
 	}
 
+	latestRef := func(refs RefArray) string {
+		sortedRefs := refs
+		sort.Sort(sortedRefs)
+		return refs[len(refs)-1]
+	}
 	latestDeps := []string{}
 	for repoPath, depRefMap := range depsMap {
 		refs := make([]string, 0, len(depRefMap))
@@ -229,8 +259,8 @@ func (cmd cmdInstall) getZip(dep pollapo.PollapoDep) *zip.Reader {
 
 type RefArray []string
 
-func (refa RefArray) Len() int {
-	return len(refa)
+func (refs RefArray) Len() int {
+	return len(refs)
 }
 
 func (refs RefArray) Less(i, j int) bool {
@@ -250,22 +280,4 @@ func (refs RefArray) Less(i, j int) bool {
 
 func (refs RefArray) Swap(i, j int) {
 	refs[i], refs[j] = refs[j], refs[i]
-}
-
-func latestRef(refs RefArray) string {
-	sortedRefs := refs
-	sort.Sort(sortedRefs)
-	return refs[len(refs)-1]
-}
-
-func putDepIntoMap(depsMap map[string]map[string][]string, dep pollapo.PollapoDep, origin string) {
-	f := func(dep pollapo.PollapoDep) string { return dep.Owner + "/" + dep.Repo }
-	if depsMap[f(dep)] == nil {
-		depsMap[f(dep)] = map[string][]string{}
-	}
-	if depsMap[f(dep)][dep.Ref] != nil {
-		depsMap[f(dep)][dep.Ref] = append(depsMap[f(dep)][dep.Ref], origin)
-	} else {
-		depsMap[f(dep)][dep.Ref] = []string{origin}
-	}
 }

@@ -2,8 +2,8 @@ package pollapo
 
 import (
 	"fmt"
+	"os"
 	"regexp"
-	"strings"
 
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/util"
 	"gopkg.in/yaml.v3"
@@ -11,6 +11,9 @@ import (
 
 type PollapoConfig interface {
 	GetDeps(verbose bool) []PollapoDep
+	GetLock(dep PollapoDep) (string, bool)
+	SetLock(dep PollapoDep, lockedRef string)
+	SaveFile(filepath string) error
 }
 
 type PollapoConfigYml struct {
@@ -31,6 +34,9 @@ func ParsePollapo(barr []byte) PollapoConfig {
 	if err != nil {
 		util.Sugar.Fatalw("Failed to unmarshal yaml", err.Error(), "yaml", barr)
 	}
+	if cfg.Root.Lock == nil {
+		cfg.Root.Lock = make(map[string]string)
+	}
 	return cfg
 }
 
@@ -45,23 +51,55 @@ func (cfg PollapoConfigYml) GetDeps(verbose bool) []PollapoDep {
 		if !isOk {
 			util.Sugar.Fatalw("Invalid dep", nil, "dep", depTxt)
 		}
-		hasLock := false
-		for k, v := range cfg.Root.Lock {
-			if depTxt[:strings.Index(depTxt, "@")] == k {
-				util.PrintfVerbose(logName, verbose, "%s locked by %s\n", util.Yellow(dep), util.Yellow(v))
-				dep.Ref = v
-				lockedDeps = append(lockedDeps, dep)
-				hasLock = true
-				break
-			}
-		}
-		if !hasLock {
+
+		if lockedRef, found := cfg.getLock(dep, verbose); found {
+			lockedDep := dep
+			lockedDep.Ref = lockedRef
+			lockedDeps = append(lockedDeps, lockedDep)
+		} else {
 			util.PrintfVerbose(logName, verbose, "No lock for %s\n", util.Yellow(dep))
 			lockedDeps = append(lockedDeps, dep)
 		}
 	}
 	util.PrintfVerbose(logName, verbose, "Locked deps: %v\n", util.Yellow(lockedDeps))
 	return lockedDeps
+}
+
+func (cfg PollapoConfigYml) GetLock(dep PollapoDep) (string, bool) {
+	return cfg.getLock(dep, false)
+}
+
+func (cfg PollapoConfigYml) SetLock(dep PollapoDep, lockedRef string) {
+	cfg.Root.Lock[lockKey(dep)] = lockedRef
+}
+
+func (cfg PollapoConfigYml) getLock(dep PollapoDep, verbose bool) (string, bool) {
+	lockedRef, found := cfg.Root.Lock[lockKey(dep)]
+	if found {
+		util.PrintfVerbose(logName, verbose, "%s locked by %s\n", util.Yellow(dep), util.Yellow(lockedRef))
+		return lockedRef, true
+	}
+	return dep.Ref, found
+}
+
+func (cfg PollapoConfigYml) SaveFile(filepath string) error {
+	f, err := os.Create(filepath)
+	if err != nil {
+		return err
+	}
+	b, err := yaml.Marshal(cfg)
+	if err != nil {
+		return err
+	}
+	_, err = f.Write(b)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func lockKey(dep PollapoDep) string {
+	return fmt.Sprintf("%s/%s@%s", dep.Owner, dep.Repo, dep.Ref)
 }
 
 type PollapoDep struct {
