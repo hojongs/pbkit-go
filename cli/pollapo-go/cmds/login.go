@@ -20,7 +20,7 @@ var CommandLogin = cli.Command{
 func login() {
 	token := github.GetTokenFromGhHosts()
 	if len(token) == 0 {
-		log.Infow("Token not found.")
+		log.Sugar.Info("Token not found.")
 		token = github.TryOauthFlow()
 		github.WriteTokenGhHosts(token)
 	} else {

@@ -72,6 +72,15 @@ func (gc CachedGitHubClient) getCommit(owner string, repo string, ref string) (s
 			return "", err
 		}
 		gc.cache.Set(key, commit, cache.DefaultExpiration)
+		// TODO: impl pollapo root.lock first to avoid cache miss many times
+		// if ref == commit[:len(ref)] {
+		// 	gc.cache.Set(key, commit, cache.DefaultExpiration)
+		// } else {
+		// 	// if not, the ref is branch or tag rather than commit sha1
+		// 	// then do not set cache cuz the commit of branches or tags may change
+		// 	util.PrintfVerbose(logName, gc.verbose, "Ref %s is not commit sha1.\n", util.Yellow(ref))
+		// 	log.Sugar.Fatal("Ref is not commit sha1.")
+		// }
 		key2 := fmt.Sprintf("commit:%v/%v@%v", owner, repo, commit) // the length of commit is 40
 		gc.cache.Set(key2, commit, cache.DefaultExpiration)
 		return commit, nil

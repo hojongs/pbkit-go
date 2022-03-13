@@ -3,18 +3,19 @@ package pollapo
 import (
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/log"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/yaml"
 )
 
 type PollapoConfig struct {
-	Deps []string
-	// root PollapoRoot
+	deps []string
+	root PollapoRoot
 }
 
 type PollapoRoot struct {
-	// lock
+	lock map[string]string
 	// replace file option
 }
 
@@ -22,9 +23,35 @@ func ParsePollapo(barr []byte) PollapoConfig {
 	cfg := PollapoConfig{}
 	err := yaml.Unmarshal([]byte(barr), &cfg)
 	if err != nil {
-		log.Fatalw("Failed to unmarshal yaml", err.Error(), "yaml", barr)
+		log.Sugar.Fatalw("Failed to unmarshal yaml", err.Error(), "yaml", barr)
 	}
 	return cfg
+}
+
+// Get parsed deps
+// resolve deps as commit hashes if there are corresponding lock in root.lock
+// TODO: impl store root.lock
+func (cfg PollapoConfig) GetDeps() []PollapoDep {
+	lockedDeps := []PollapoDep{}
+	for _, depTxt := range cfg.deps {
+		dep, isOk := ParseDep(depTxt)
+		if !isOk {
+			log.Sugar.Fatalw("Invalid dep", nil, "dep", depTxt)
+		}
+		hasLock := false
+		for k, v := range cfg.root.lock {
+			if depTxt[:strings.Index(depTxt, "@")] == k {
+				dep.Ref = v
+				lockedDeps = append(lockedDeps, dep)
+				hasLock = true
+				break
+			}
+		}
+		if !hasLock {
+			lockedDeps = append(lockedDeps, dep)
+		}
+	}
+	return lockedDeps
 }
 
 type PollapoDep struct {

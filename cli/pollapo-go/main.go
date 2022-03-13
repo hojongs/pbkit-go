@@ -1,10 +1,10 @@
 package main
 
 import (
-	"log"
 	"os"
 
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/cmds"
+	"github.com/hojongs/pbkit-go/cli/pollapo-go/log"
 	"github.com/urfave/cli/v2"
 )
 
@@ -20,6 +20,7 @@ func main() {
 	}
 	err := app.Run(os.Args)
 	if err != nil {
-		log.Fatal(err)
+		log.Sugar.Fatal(err)
 	}
+	log.Sugar.Sync() // flushes buffer, if any
 }

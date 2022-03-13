@@ -123,7 +123,7 @@ func (cmd cmdInstall) Install() {
 		util.Printf("%s\n", util.Red("error"))
 		absPath, err := filepath.Abs(cmd.pollapoYmlPath)
 		if err != nil {
-			log.Fatalw("Unknown error. Please retry.", err)
+			log.Sugar.Fatalw("Unknown error. Please retry.", err)
 		}
 		util.Printf("%s not found.\n", util.Red(absPath))
 		// TODO: Ask create pollapo.yml
@@ -131,7 +131,7 @@ func (cmd cmdInstall) Install() {
 	}
 	util.PrintfVerbose(logName, cmd.verbose, "Clean out directory %s.\n", util.Yellow(cmd.outDir))
 	if err := os.RemoveAll(cmd.outDir); err != nil {
-		log.Fatalw("Remove out dir", err, "outDir", cmd.outDir)
+		log.Sugar.Fatalw("Remove out dir", err, "outDir", cmd.outDir)
 	}
 	cmd.installDepsRecursive(rootCfg)
 	cmd.gc.Flush()
@@ -141,14 +141,8 @@ func (cmd cmdInstall) Install() {
 
 func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 	depHandleQueue := []pollapo.PollapoDep{}
-	for _, dep := range rootCfg.Deps {
+	for _, dep := range rootCfg.GetDeps() {
 		util.PrintfVerbose(logName, cmd.verbose, "Enqueue %s.\n", util.Yellow(dep))
-	}
-	for _, depTxt := range rootCfg.Deps {
-		dep, isOk := pollapo.ParseDep(depTxt)
-		if !isOk {
-			log.Fatalw("Invalid dep", nil, "dep", depTxt)
-		}
 		depHandleQueue = append(depHandleQueue, dep)
 	}
 	depsMap := map[string]map[string][]string{} // depsMap[user/repo][ref]=froms
@@ -179,19 +173,15 @@ func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 				// get pollapo config
 				rc, err := pollapoFile.Open()
 				if err != nil {
-					log.Fatalw("Failed to open pollapo file", err)
+					log.Sugar.Fatalw("Failed to open pollapo file", err)
 				}
 				bin, err := io.ReadAll(rc)
 				rc.Close()
 				if err != nil {
-					log.Fatalw("Failed to read pollapo file", err)
+					log.Sugar.Fatalw("Failed to read pollapo file", err)
 				}
 				depCfg := pollapo.ParsePollapo(bin)
-				for _, depTxt := range depCfg.Deps {
-					dep, isOk := pollapo.ParseDep(depTxt)
-					if !isOk {
-						log.Fatalw("Invalid dep", nil, "dep", depTxt)
-					}
+				for _, dep := range depCfg.GetDeps() {
 					queue = append(queue, dep)
 					util.PrintfVerbose(logName, cmd.verbose, "Enqueue %s.\n", util.Yellow(dep))
 				}
@@ -216,7 +206,7 @@ func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 	for _, depTxt := range latestDeps {
 		dep, isOk := pollapo.ParseDep(depTxt)
 		if !isOk {
-			log.Fatalw("Failed to parse dep", nil, "dep", depTxt)
+			log.Sugar.Fatalw("Failed to parse dep", nil, "dep", depTxt)
 		}
 		depOutDir := filepath.Join(cmd.outDir, dep.Owner, dep.Repo)
 		zipReader := cmd.getZip(dep)
@@ -227,10 +217,11 @@ func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 }
 
 func (cmd cmdInstall) getZip(dep pollapo.PollapoDep) *zip.Reader {
+	// Use commit is branch or tag rather than commit sha1.
 	zipUrl, err := cmd.gc.GetZipLink(dep.Owner, dep.Repo, dep.Ref)
 	if err != nil {
 		util.Printf("%s\n", util.Red("error"))
-		util.Printf("Login required. (%s)\n", dep)
+		util.Printf("Login required. (%s): %s\n", util.Yellow(dep), err)
 		os.Exit(1)
 	}
 	zipReader, _ := cmd.zd.GetZip(zipUrl)

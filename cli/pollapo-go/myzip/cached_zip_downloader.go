@@ -60,10 +60,11 @@ func (zd CachedZipDownloader) GetZip(zipUrl string) (*zip.Reader, []byte) {
 
 	b, found := zd.cache.Get(cacheKey)
 	if found {
-		// Ref is too long...
-		if zd.onCacheHit != nil {
-			zd.onCacheHit(shortCacheKey)
-		}
+		// Printed too many times...
+		// if zd.onCacheHit != nil {
+		// 	zd.onCacheHit(shortCacheKey)
+		// }
+		util.PrintfVerbose(logName, zd.verbose, "Cache hit: %s\n", util.Yellow(u.Path))
 		zipBin := b.([]byte)
 		r := NewZipReader(zipBin)
 		return r, zipBin
@@ -100,7 +101,7 @@ func (zd CachedZipDownloader) GetZip(zipUrl string) (*zip.Reader, []byte) {
 				util.PrintfVerbose(logName, zd.verbose, "Get zipBin from cache instead of ch %s\n", util.Yellow(u.Path))
 				b, found := zd.cache.Get(cacheKey)
 				if !found {
-					log.Fatalw("Unexpected cache miss", nil)
+					log.Sugar.Fatalw("Unexpected cache miss", nil)
 				}
 				zipBin := b.([]byte)
 				return NewZipReader(zipBin), zipBin

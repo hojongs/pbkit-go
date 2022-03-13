@@ -15,7 +15,7 @@ import (
 func GetDefaultCacheRoot() string {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		log.Fatalw("UserHomeDir", err)
+		log.Sugar.Fatalw("UserHomeDir", err)
 	}
 	return fmt.Sprintf("%v/.cache/pollapo-go", homeDir)
 }
