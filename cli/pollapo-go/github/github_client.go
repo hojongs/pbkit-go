@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/google/go-github/v42/github"
 	"golang.org/x/oauth2"
@@ -51,8 +50,4 @@ func initClientByToken(token string) *github.Client {
 	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
 	tc := oauth2.NewClient(context.Background(), ts)
 	return github.NewClient(tc)
-}
-
-func cacheKey(owner string, repo string, ref string) string {
-	return fmt.Sprintf("%v/%v@%v", owner, repo, ref)
 }

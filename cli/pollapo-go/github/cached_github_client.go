@@ -24,7 +24,7 @@ func (gc CachedGitHubClient) GetZipLink(owner string, repo string, ref string) (
 }
 
 func (gc CachedGitHubClient) GetCommit(owner string, repo string, ref string) (string, error) {
-	key := cacheKey(owner, repo, ref)
+	key := fmt.Sprintf("%v/%v@%v", owner, repo, ref)
 	commit, found := gc.cache.Get(key)
 	if found {
 		return fmt.Sprintf("%v", commit), nil
