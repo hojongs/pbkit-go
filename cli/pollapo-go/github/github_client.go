@@ -3,10 +3,8 @@ package github
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/google/go-github/v42/github"
-	"github.com/patrickmn/go-cache"
 	"golang.org/x/oauth2"
 )
 
@@ -17,11 +15,6 @@ type GitHubClient interface {
 
 type DefaultGitHubClient struct {
 	client *github.Client
-}
-
-type CachedGitHubClient struct {
-	DefaultClient DefaultGitHubClient
-	cache         *cache.Cache
 }
 
 func NewGitHubClient(token string) DefaultGitHubClient {
@@ -49,29 +42,6 @@ func (gc DefaultGitHubClient) GetCommit(owner string, repo string, ref string) (
 		return "", err
 	}
 	return commit, nil
-}
-
-func NewCachedClient(token string) GitHubClient {
-	c := cache.New(5*time.Minute, 5*time.Minute)
-	return CachedGitHubClient{NewGitHubClient(token), c}
-}
-
-func (gc CachedGitHubClient) GetZipLink(owner string, repo string, ref string) (string, error) {
-	return gc.DefaultClient.GetZipLink(owner, repo, ref)
-}
-
-func (gc CachedGitHubClient) GetCommit(owner string, repo string, ref string) (string, error) {
-	key := cacheKey(owner, repo, ref)
-	commit, found := gc.cache.Get(key)
-	if !found {
-		var err error
-		commit, err = gc.DefaultClient.GetCommit(owner, repo, ref)
-		if err != nil {
-			return "", err
-		}
-	}
-	gc.cache.Set(key, commit, cache.DefaultExpiration)
-	return fmt.Sprintf("%v", commit), nil
 }
 
 func initClientByToken(token string) *github.Client {
