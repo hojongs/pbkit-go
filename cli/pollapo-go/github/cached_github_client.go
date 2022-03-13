@@ -8,8 +8,8 @@ import (
 )
 
 type CachedGitHubClient struct {
-	DefaultClient GitHubClient
-	cache         *cache.Cache
+	Default GitHubClient
+	cache   *cache.Cache
 }
 
 func NewCachedGitHubClient(token string) GitHubClient {
@@ -18,7 +18,7 @@ func NewCachedGitHubClient(token string) GitHubClient {
 }
 
 func (gc CachedGitHubClient) GetZipLink(owner string, repo string, ref string) (string, error) {
-	return gc.DefaultClient.GetZipLink(owner, repo, ref)
+	return gc.Default.GetZipLink(owner, repo, ref)
 }
 
 func (gc CachedGitHubClient) GetCommit(owner string, repo string, ref string) (string, error) {
@@ -27,7 +27,7 @@ func (gc CachedGitHubClient) GetCommit(owner string, repo string, ref string) (s
 	if found {
 		return fmt.Sprintf("%v", commit), nil
 	} else {
-		commit, err := gc.DefaultClient.GetCommit(owner, repo, ref)
+		commit, err := gc.Default.GetCommit(owner, repo, ref)
 		if err != nil {
 			return "", err
 		}

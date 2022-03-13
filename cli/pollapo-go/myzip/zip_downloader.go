@@ -11,15 +11,16 @@ import (
 type ZipDownloader interface {
 	// returns zip reader with zip data binary
 	GetZip(zipUrl string) (*zip.Reader, []byte)
+	Flush() error
 }
 
-type GitHubZipDownloader struct{}
+type DefaultZipDownloader struct{}
 
-func NewGitHubZipDownloader() GitHubZipDownloader {
-	return GitHubZipDownloader{}
+func NewZipDownloader() ZipDownloader {
+	return DefaultZipDownloader{}
 }
 
-func (gzd GitHubZipDownloader) GetZip(zipUrl string) (*zip.Reader, []byte) {
+func (zd DefaultZipDownloader) GetZip(zipUrl string) (*zip.Reader, []byte) {
 	resp, err := http.Get(zipUrl)
 	if err != nil {
 		log.Fatalw("Failed to HTTP Get", err, "zipUrl", zipUrl)
@@ -33,6 +34,8 @@ func (gzd GitHubZipDownloader) GetZip(zipUrl string) (*zip.Reader, []byte) {
 
 	return zipReader, zipBin
 }
+
+func (zd DefaultZipDownloader) Flush() error { return nil }
 
 func readAll(reader io.Reader) []byte {
 	// TODO: print progress if verbose for slow network

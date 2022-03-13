@@ -78,7 +78,7 @@ var CommandInstall = cli.Command{
 			c.String("out-dir"),
 			c.String("config"),
 			gc,
-			myzip.NewGitHubZipDownloader(),
+			myzip.NewZipDownloader(),
 			myzip.UnzipperImpl{},
 			pollapo.FileConfigLoader{},
 			cache.NewFileSystemCache(),
