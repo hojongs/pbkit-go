@@ -70,9 +70,9 @@ var CommandInstall = cli.Command{
 			token = github.GetTokenFromGhHosts()
 		}
 
-		onCacheMiss := func(ref string) { util.Printf("Downloading %s...\n", util.Yellow(ref)) }
-		onCacheStore := func(ref string) { util.Printf("Store cache %s...\n", util.Yellow(ref)) }
-		onCacheHit := func(ref string) { util.Printf("Found cache of %s.\n", util.Yellow(ref)) }
+		onCacheMiss := func(cacheKey string) { util.Printf("Downloading %s...\n", util.Yellow(cacheKey)) }
+		onCacheStore := func(cacheKey string) { util.Printf("Store cache %s...\n", util.Yellow(cacheKey)) }
+		onCacheHit := func(cacheKey string) { util.Printf("Found cache of %s.\n", util.Yellow(cacheKey)) }
 		newCmdInstall(
 			c.Bool("clean"),
 			c.String("out-dir"),

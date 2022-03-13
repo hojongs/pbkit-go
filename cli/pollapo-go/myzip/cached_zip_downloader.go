@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"net/url"
 	"path"
+	"strings"
 	"sync"
 
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/log"
@@ -48,35 +49,37 @@ func NewCachedZipDownloader(cacheDir string, verbose bool, onCacheMiss func(ref 
 // cache binary: require enough memory
 // alternative: flush cached binary to file system if not enough memory
 func (zd CachedZipDownloader) GetZip(zipUrl string) (*zip.Reader, []byte) {
-	// parse ref from "GitHub" zipUrl
 	u, err := url.Parse(zipUrl)
-	cacheKey := u.Path
 	if err != nil {
 		log.Sugar.Fatalw("Failed to parse URL", err, "u.Path", u.Path)
 	}
+	cacheKey := u.Path
+	// The code below depends on GitHub Url
+	shortCacheKey := strings.Replace(u.Path, "/legacy.zip", "", 1)
+	shortCacheKey = shortCacheKey[:strings.LastIndex(shortCacheKey, "/")+8] + "---"
 
 	b, found := zd.cache.Get(cacheKey)
 	if found {
 		// Ref is too long...
-		// if zd.onCacheHit != nil {
-		// 	zd.onCacheHit(u.Path)
-		// }
+		if zd.onCacheHit != nil {
+			zd.onCacheHit(shortCacheKey)
+		}
 		zipBin := b.([]byte)
 		r := NewZipReader(zipBin)
 		return r, zipBin
 	} else {
-		util.Printf("VERBOSE[Zip]: Cache miss %s\n", util.Yellow(u.Path))
+		util.PrintfVerbose(logName, zd.verbose, "Cache miss %s\n", util.Yellow(u.Path))
 		zd.dlChanMtx.Lock()
 		if zd.dlChanMap[zipUrl] == nil {
 			ch := make(chan *[]byte, 1) // channel should be buffered to avoid blocking
 			zd.dlChanMap[zipUrl] = ch
 			zd.dlChanMtx.Unlock()
 			if zd.onCacheMiss != nil {
-				zd.onCacheMiss(u.Path)
+				zd.onCacheMiss(shortCacheKey)
 			}
 			reader, zipBin := zd.Default.GetZip(zipUrl)
 			if zd.onCacheStore != nil {
-				zd.onCacheStore(u.Path)
+				zd.onCacheStore(shortCacheKey)
 			}
 			zd.cache.Set(cacheKey, zipBin, cache.DefaultExpiration)
 			ch <- &zipBin // it's done to store cache for the key {zipUrl}
@@ -86,15 +89,15 @@ func (zd CachedZipDownloader) GetZip(zipUrl string) (*zip.Reader, []byte) {
 		} else {
 			ch := zd.dlChanMap[zipUrl]
 			zd.dlChanMtx.Unlock()
-			util.PrintfVerbose(logName, zd.verbose, "VERBOSE[Zip]: Wait ch %s\n", util.Yellow(u.Path))
+			util.PrintfVerbose(logName, zd.verbose, "Wait ch %s\n", util.Yellow(u.Path))
 			zipBinPtr := <-ch
 			if zipBinPtr != nil {
-				util.PrintfVerbose(logName, zd.verbose, "VERBOSE[Zip]: Get zipBin from ch %s\n", util.Yellow(u.Path))
+				util.PrintfVerbose(logName, zd.verbose, "Get zipBin from ch %s\n", util.Yellow(u.Path))
 				zipBin := *zipBinPtr
 				return NewZipReader(zipBin), zipBin
 			} else {
 				// another receiver of the channel already took it
-				util.PrintfVerbose(logName, zd.verbose, "VERBOSE[Zip]: Get zipBin from cache instead of ch %s\n", util.Yellow(u.Path))
+				util.PrintfVerbose(logName, zd.verbose, "Get zipBin from cache instead of ch %s\n", util.Yellow(u.Path))
 				b, found := zd.cache.Get(cacheKey)
 				if !found {
 					log.Fatalw("Unexpected cache miss", nil)
