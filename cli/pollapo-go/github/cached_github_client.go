@@ -2,7 +2,6 @@ package github
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/patrickmn/go-cache"
 )
@@ -13,8 +12,10 @@ type CachedGitHubClient struct {
 }
 
 func NewCachedGitHubClient(token string) GitHubClient {
-	c := cache.New(5*time.Minute, 5*time.Minute)
-	return CachedGitHubClient{NewGitHubClient(token), c}
+	return CachedGitHubClient{
+		NewGitHubClient(token),
+		cache.New(cache.NoExpiration, cache.NoExpiration),
+	}
 }
 
 func (gc CachedGitHubClient) GetZipLink(owner string, repo string, ref string) (string, error) {
