@@ -178,23 +178,6 @@ func (cmd cmdInstall) installDepsRecursive(rootCfg *pollapo.PollapoConfig) {
 		queue := []pollapo.PollapoDep{}
 		for _, dep := range depHandleQueue {
 			// TODO: froms are unused. command 'why' will use it maybe.
-			commit, err := cmd.gc.GetCommit(dep.Owner, dep.Repo, dep.Ref)
-			if err != nil {
-				util.Sugar.Fatalw("Failed to get commit: %s", dep)
-			}
-			if commit[:len(dep.Ref)] != dep.Ref {
-				// if dep.Ref is not commit hash
-				lockedRef, found := (*rootCfg).GetLock(dep)
-				if !found {
-					commit, err := cmd.gc.GetCommit(dep.Owner, dep.Repo, dep.Ref)
-					if err == nil {
-						(*rootCfg).SetLock(dep, commit)
-						dep.Ref = commit
-					}
-				} else {
-					dep.Ref = lockedRef
-				}
-			}
 			putDepIntoMap(depsMap, dep, origin)
 			zipReader := cmd.getZip(dep)
 
@@ -237,12 +220,30 @@ func (cmd cmdInstall) installDepsRecursive(rootCfg *pollapo.PollapoConfig) {
 		depTxt := fmt.Sprintf("%s@%s", repoPath, latestRef(refs))
 		latestDeps = append(latestDeps, depTxt)
 	}
+	// sort it to keep consistent installation order
 	sort.Strings(latestDeps)
 
 	for _, depTxt := range latestDeps {
 		dep, isOk := pollapo.ParseDep(depTxt)
 		if !isOk {
 			util.Sugar.Fatalw("Failed to parse dep", nil, "dep", depTxt)
+		}
+		commit, err := cmd.gc.GetCommit(dep.Owner, dep.Repo, dep.Ref)
+		if err != nil {
+			util.Sugar.Fatalw("Failed to get commit: %s", dep)
+		}
+		if commit[:len(dep.Ref)] != dep.Ref {
+			// if dep.Ref is not commit hash
+			lockedRef, found := (*rootCfg).GetLock(dep)
+			if !found {
+				commit, err := cmd.gc.GetCommit(dep.Owner, dep.Repo, dep.Ref)
+				if err == nil {
+					(*rootCfg).SetLock(dep, commit)
+					dep.Ref = commit
+				}
+			} else {
+				dep.Ref = lockedRef
+			}
 		}
 		depOutDir := filepath.Join(cmd.outDir, dep.Owner, dep.Repo)
 		zipReader := cmd.getZip(dep)
