@@ -78,7 +78,7 @@ var CommandInstall = cli.Command{
 			c.String("out-dir"),
 			c.String("config"),
 			gc,
-			// myzip.NewCachedZipDownloader(true),
+			// myzip.NewCachedZipDownloader(true), // TODO: remove cach logic in install.go
 			myzip.NewZipDownloader(),
 			myzip.UnzipperImpl{},
 			pollapo.FileConfigLoader{},

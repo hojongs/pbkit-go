@@ -2,6 +2,10 @@ package myzip
 
 import (
 	"archive/zip"
+	"bytes"
+	"encoding/gob"
+	"os"
+	"path"
 	"strings"
 	"sync"
 
@@ -18,12 +22,35 @@ type CachedZipDownloader struct {
 	verbose   bool // TODO; replace it with verbose printer (verbose check, print prefix)
 }
 
-func NewCachedZipDownloader(verbose bool) ZipDownloader {
+func NewCachedZipDownloader(cacheDir string, verbose bool) ZipDownloader {
+	barr, err := os.ReadFile(path.Join(cacheDir, "zip-cache"))
+	var c *cache.Cache
+	if err != nil {
+		c = cache.New(cache.NoExpiration, cache.NoExpiration)
+	} else {
+		// Load cache from bytes
+		// https://github.com/patrickmn/go-cache/blob/v2.1.0/cache.go#L1002
+		dec := gob.NewDecoder(bytes.NewReader(barr))
+		mu := sync.Mutex{}
+		items := map[string]cache.Item{}
+		err := dec.Decode(&items)
+		if err == nil {
+			mu.Lock()
+			for k, v := range items {
+				ov, found := items[k] // ov = old value
+				if !found || ov.Expired() {
+					items[k] = v
+				}
+			}
+			mu.Unlock()
+		}
+		c = cache.NewFrom(cache.NoExpiration, cache.NoExpiration, items)
+	}
 	return CachedZipDownloader{
 		NewZipDownloader(),
 		make(map[string]chan *[]byte),
 		&sync.Mutex{},
-		cache.New(cache.NoExpiration, cache.NoExpiration),
+		c,
 		verbose,
 	}
 }
@@ -98,6 +125,6 @@ func (zd CachedZipDownloader) GetZip(zipUrl string) (*zip.Reader, []byte) {
 }
 
 func (zd CachedZipDownloader) Flush() error {
-	// TODO
+	// TODO: Save cache to file
 	return nil
 }

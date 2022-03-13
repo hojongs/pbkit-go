@@ -12,6 +12,7 @@ type CachedGitHubClient struct {
 }
 
 func NewCachedGitHubClient(token string) GitHubClient {
+	// TODO: Load cache from file
 	return CachedGitHubClient{
 		NewGitHubClient(token),
 		cache.New(cache.NoExpiration, cache.NoExpiration),
@@ -38,6 +39,6 @@ func (gc CachedGitHubClient) GetCommit(owner string, repo string, ref string) (s
 }
 
 func (gc CachedGitHubClient) Flush() error {
-	// TODO: gc.cache.Items()
+	// TODO: Save cache to file
 	return nil
 }
