@@ -72,7 +72,7 @@ var CommandInstall = cli.Command{
 		if token == "" {
 			token = github.GetTokenFromGhHosts()
 		}
-		gc := github.NewCachedGitHubClient(token)
+		gc := github.NewCachedGitHubClient(cache.GetDefaultCacheRoot(), token)
 		newCmdInstall(
 			c.Bool("clean"),
 			c.String("out-dir"),
