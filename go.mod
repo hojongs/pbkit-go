@@ -32,6 +32,7 @@ require (
 	github.com/fatih/color v1.13.0
 	github.com/golang/mock v1.6.0
 	github.com/google/go-github/v42 v42.0.0
+	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/russross/blackfriday/v2 v2.0.1 // indirect
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/stretchr/testify v1.7.0
