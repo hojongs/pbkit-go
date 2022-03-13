@@ -8,10 +8,10 @@ type ConfigLoader interface {
 
 type FileConfigLoader struct{}
 
-func (_ FileConfigLoader) GetPollapoConfig(pollapoYmlPath string) (PollapoConfig, error) {
+func (cl FileConfigLoader) GetPollapoConfig(pollapoYmlPath string) (PollapoConfig, error) {
 	pollapoBytes, err := os.ReadFile(pollapoYmlPath)
 	if err != nil {
-		return PollapoConfig{}, err
+		return PollapoConfigYml{}, err
 	} else {
 		return ParsePollapo(pollapoBytes), nil
 	}

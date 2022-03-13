@@ -6,21 +6,28 @@ import (
 	"strings"
 
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/log"
+	"github.com/hojongs/pbkit-go/cli/pollapo-go/util"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/yaml"
 )
 
-type PollapoConfig struct {
-	deps []string
-	root PollapoRoot
+type PollapoConfig interface {
+	GetDeps(verbose bool) []PollapoDep
+}
+
+type PollapoConfigYml struct {
+	Deps []string
+	Root PollapoRoot
 }
 
 type PollapoRoot struct {
-	lock map[string]string
+	Lock map[string]string
 	// replace file option
 }
 
+var logName = "Pollapo"
+
 func ParsePollapo(barr []byte) PollapoConfig {
-	cfg := PollapoConfig{}
+	cfg := PollapoConfigYml{}
 	err := yaml.Unmarshal([]byte(barr), &cfg)
 	if err != nil {
 		log.Sugar.Fatalw("Failed to unmarshal yaml", err.Error(), "yaml", barr)
@@ -31,16 +38,18 @@ func ParsePollapo(barr []byte) PollapoConfig {
 // Get parsed deps
 // resolve deps as commit hashes if there are corresponding lock in root.lock
 // TODO: impl store root.lock
-func (cfg PollapoConfig) GetDeps() []PollapoDep {
+func (cfg PollapoConfigYml) GetDeps(verbose bool) []PollapoDep {
+	util.PrintfVerbose(logName, verbose, "deps: %s\n", util.Yellow(cfg.Deps))
 	lockedDeps := []PollapoDep{}
-	for _, depTxt := range cfg.deps {
+	for _, depTxt := range cfg.Deps {
 		dep, isOk := ParseDep(depTxt)
 		if !isOk {
 			log.Sugar.Fatalw("Invalid dep", nil, "dep", depTxt)
 		}
 		hasLock := false
-		for k, v := range cfg.root.lock {
+		for k, v := range cfg.Root.Lock {
 			if depTxt[:strings.Index(depTxt, "@")] == k {
+				util.PrintfVerbose(logName, verbose, "%s locked by %s\n", util.Yellow(dep), util.Yellow(v))
 				dep.Ref = v
 				lockedDeps = append(lockedDeps, dep)
 				hasLock = true
@@ -48,9 +57,11 @@ func (cfg PollapoConfig) GetDeps() []PollapoDep {
 			}
 		}
 		if !hasLock {
+			util.PrintfVerbose(logName, verbose, "No lock for %s\n", util.Yellow(dep))
 			lockedDeps = append(lockedDeps, dep)
 		}
 	}
+	util.PrintfVerbose(logName, verbose, "Locked deps: %v\n", util.Yellow(lockedDeps))
 	return lockedDeps
 }
 

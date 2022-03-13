@@ -141,7 +141,7 @@ func (cmd cmdInstall) Install() {
 
 func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 	depHandleQueue := []pollapo.PollapoDep{}
-	for _, dep := range rootCfg.GetDeps() {
+	for _, dep := range rootCfg.GetDeps(cmd.verbose) {
 		util.PrintfVerbose(logName, cmd.verbose, "Enqueue %s.\n", util.Yellow(dep))
 		depHandleQueue = append(depHandleQueue, dep)
 	}
@@ -181,7 +181,7 @@ func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 					log.Sugar.Fatalw("Failed to read pollapo file", err)
 				}
 				depCfg := pollapo.ParsePollapo(bin)
-				for _, dep := range depCfg.GetDeps() {
+				for _, dep := range depCfg.GetDeps(cmd.verbose) {
 					queue = append(queue, dep)
 					util.PrintfVerbose(logName, cmd.verbose, "Enqueue %s.\n", util.Yellow(dep))
 				}
