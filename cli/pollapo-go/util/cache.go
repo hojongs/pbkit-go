@@ -3,12 +3,22 @@ package util
 import (
 	"bytes"
 	"encoding/gob"
+	"fmt"
 	"os"
+	"path"
 	"sync"
 
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/log"
 	"github.com/patrickmn/go-cache"
 )
+
+func GetDefaultCacheRoot() string {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatalw("UserHomeDir", err)
+	}
+	return fmt.Sprintf("%v/.cache/pollapo-go", homeDir)
+}
 
 func LoadCache(cacheFilepath string, mu *sync.Mutex) *cache.Cache {
 	barr, err := os.ReadFile(cacheFilepath)
@@ -39,6 +49,11 @@ func LoadCache(cacheFilepath string, mu *sync.Mutex) *cache.Cache {
 func SaveCache(cache *cache.Cache, cacheFilepath string, mu *sync.RWMutex) error {
 	// Save cache items to file
 	// https://github.com/patrickmn/go-cache/blob/v2.1.0/cache.go#L963
+	err := os.MkdirAll(path.Dir(cacheFilepath), 0755)
+	if err != nil {
+		return err
+	}
+
 	f, err := os.Create(cacheFilepath)
 	if err != nil {
 		return err

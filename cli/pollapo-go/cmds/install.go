@@ -10,7 +10,6 @@ import (
 	"sync"
 
 	"github.com/Masterminds/semver"
-	"github.com/hojongs/pbkit-go/cli/pollapo-go/cache"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/github"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/log"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/myzip"
@@ -60,29 +59,28 @@ var CommandInstall = cli.Command{
 			os.Exit(1)
 		}
 		if c.Bool("verbose") {
-			util.Printf("Flag verbose: %v\n", util.Yellow(c.Bool("verbose")))
-			util.Printf("Flag clean: %v\n", util.Yellow(c.Bool("clean")))
-			util.Printf("Flag out-dir: %v\n", util.Yellow(c.String("out-dir")))
-			if c.String("token") != "" {
-				util.Printf("Flag token: %v\n", util.Yellow(c.String("token")))
-			}
-			util.Printf("Flag config: %v\n", util.Yellow(c.String("config")))
+			util.Printf("VERBOSE[Flag]: verbose: %v\n", util.Yellow(c.Bool("verbose")))
+			util.Printf("VERBOSE[Flag]: clean: %v\n", util.Yellow(c.Bool("clean")))
+			util.Printf("VERBOSE[Flag]: out-dir: %v\n", util.Yellow(c.String("out-dir")))
+			util.Printf("VERBOSE[Flag]: token: %v\n", util.Yellow(c.String("token")))
+			util.Printf("VERBOSE[Flag]: config: %v\n", util.Yellow(c.String("config")))
 		}
 		token := c.String("token")
 		if token == "" {
 			token = github.GetTokenFromGhHosts()
 		}
-		gc := github.NewCachedGitHubClient(cache.GetDefaultCacheRoot(), token)
+
+		onCacheMiss := func(ref string) { util.Printf("Downloading %s...\n", util.Yellow(ref)) }
+		onCacheStore := func(ref string) { util.Printf("Store cache %s...\n", util.Yellow(ref)) }
+		onCacheHit := func(ref string) { util.Printf("Found cache of %s.\n", util.Yellow(ref)) }
 		newCmdInstall(
 			c.Bool("clean"),
 			c.String("out-dir"),
 			c.String("config"),
-			gc,
-			// myzip.NewCachedZipDownloader(true), // TODO: remove cach logic in install.go
-			myzip.NewZipDownloader(),
+			github.NewCachedGitHubClient(util.GetDefaultCacheRoot(), token, c.Bool("verbose")),
+			myzip.NewCachedZipDownloader(util.GetDefaultCacheRoot(), c.Bool("verbose"), onCacheMiss, onCacheStore, onCacheHit), // TODO: remove cach logic in install.go
 			myzip.UnzipperImpl{},
 			pollapo.FileConfigLoader{},
-			cache.NewFileSystemCache(),
 			c.Bool("verbose"),
 		).Install()
 		return nil
@@ -97,7 +95,6 @@ type cmdInstall struct {
 	zd             myzip.ZipDownloader
 	uz             myzip.Unzipper
 	loader         pollapo.ConfigLoader
-	cache          cache.Cache
 	verbose        bool
 }
 
@@ -109,16 +106,17 @@ func newCmdInstall(
 	zd myzip.ZipDownloader,
 	uz myzip.Unzipper,
 	loader pollapo.ConfigLoader,
-	cache cache.Cache,
 	verbose bool,
 ) cmdInstall {
-	return cmdInstall{cleanCache, outDir, pollapoYmlPath, gc, zd, uz, loader, cache, verbose}
+	return cmdInstall{cleanCache, outDir, pollapoYmlPath, gc, zd, uz, loader, verbose}
 }
+
+var logName = "Install"
 
 func (cmd cmdInstall) Install() {
 	if cmd.cleanCache {
-		util.Printf("Clean cache root: %s\n", util.Yellow(cmd.cache.GetRootLocation()))
-		cmd.cache.Clean()
+		util.Printf("Clean cache root: %s\n", util.Yellow(util.GetDefaultCacheRoot()))
+		os.RemoveAll(util.GetDefaultCacheRoot())
 	}
 	rootCfg, err := cmd.loader.GetPollapoConfig(cmd.pollapoYmlPath)
 	if err != nil {
@@ -131,7 +129,7 @@ func (cmd cmdInstall) Install() {
 		// TODO: Ask create pollapo.yml
 		os.Exit(1)
 	}
-	cmd.printfIfVerbose("Clean out directory %s.\n", util.Yellow(cmd.outDir))
+	util.PrintfVerbose(logName, cmd.verbose, "Clean out directory %s.\n", util.Yellow(cmd.outDir))
 	if err := os.RemoveAll(cmd.outDir); err != nil {
 		log.Fatalw("Remove out dir", err, "outDir", cmd.outDir)
 	}
@@ -144,7 +142,7 @@ func (cmd cmdInstall) Install() {
 func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 	depHandleQueue := []pollapo.PollapoDep{}
 	for _, dep := range rootCfg.Deps {
-		cmd.printfIfVerbose("Enqueue %s.\n", util.Yellow(dep))
+		util.PrintfVerbose(logName, cmd.verbose, "Enqueue %s.\n", util.Yellow(dep))
 	}
 	for _, depTxt := range rootCfg.Deps {
 		dep, isOk := pollapo.ParseDep(depTxt)
@@ -160,7 +158,11 @@ func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 		wg := sync.WaitGroup{}
 		wg.Add(len(depHandleQueue))
 		for _, dep := range depHandleQueue {
-			go cmd.cacheZipIfMiss(dep, &wg)
+			// cache zip bin of the dep
+			go func(dep pollapo.PollapoDep) {
+				cmd.getZip(dep)
+				wg.Done()
+			}(dep)
 		}
 		wg.Wait()
 
@@ -169,10 +171,7 @@ func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 			// TODO: froms are unused. command 'why' will use it maybe.
 			putDepIntoMap(depsMap, dep, origin)
 
-			// get dependency zip (the dep cached)
-			var zipReader *zip.Reader = nil
-			zipBin, _ := cmd.cache.Get(cacheKeyOf(dep, "zip"))
-			zipReader = myzip.NewZipReader(zipBin)
+			zipReader := cmd.getZip(dep)
 
 			// read pollapo.yml & enqueue deps
 			pollapoFile := myzip.GetFileByName(zipReader, "pollapo.yml")
@@ -194,7 +193,7 @@ func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 						log.Fatalw("Invalid dep", nil, "dep", depTxt)
 					}
 					queue = append(queue, dep)
-					cmd.printfIfVerbose("Enqueue %s.\n", util.Yellow(dep))
+					util.PrintfVerbose(logName, cmd.verbose, "Enqueue %s.\n", util.Yellow(dep))
 				}
 			}
 
@@ -220,22 +219,22 @@ func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 			log.Fatalw("Failed to parse dep", nil, "dep", depTxt)
 		}
 		depOutDir := filepath.Join(cmd.outDir, dep.Owner, dep.Repo)
-		// TODO: 2 layer cache: in-memory, fs
-		zipBin, err := cmd.cache.Get(cacheKeyOf(dep, "zip"))
-		var zipReader *zip.Reader = nil
-		if err != nil || zipBin == nil {
-			zipReader = cmd.getAndCacheZip(dep)
-		} else {
-			zipReader = myzip.NewZipReader(zipBin)
-		}
+		zipReader := cmd.getZip(dep)
 		util.Printf("Installing %s...", util.Yellow(dep.String()))
 		cmd.uz.Unzip(zipReader, depOutDir)
 		util.Print("ok\n")
 	}
 }
 
-func cacheKeyOf(dep pollapo.PollapoDep, fileExt string) string {
-	return fmt.Sprintf("%v-%v-%v.%v", dep.Owner, dep.Repo, dep.Ref, fileExt)
+func (cmd cmdInstall) getZip(dep pollapo.PollapoDep) *zip.Reader {
+	zipUrl, err := cmd.gc.GetZipLink(dep.Owner, dep.Repo, dep.Ref)
+	if err != nil {
+		util.Printf("%s\n", util.Red("error"))
+		util.Printf("Login required. (%s)\n", dep)
+		os.Exit(1)
+	}
+	zipReader, _ := cmd.zd.GetZip(zipUrl)
+	return zipReader
 }
 
 type RefArray []string
@@ -269,27 +268,6 @@ func latestRef(refs RefArray) string {
 	return refs[len(refs)-1]
 }
 
-func (cmd cmdInstall) getAndCacheZip(dep pollapo.PollapoDep) *zip.Reader {
-	// log.Infow("Cache not found", "dep", util.Yellow(cacheKeyOf(dep)))
-	zipUrl, err := cmd.gc.GetZipLink(dep.Owner, dep.Repo, dep.Ref)
-	if err != nil {
-		util.Printf("%s\n", util.Red("error"))
-		util.Printf("Login required. (%s)\n", dep)
-		os.Exit(1)
-	}
-	zipReader, zipBin := cmd.zd.GetZip(zipUrl)
-	cmd.cache.Store(cacheKeyOf(dep, "zip"), zipBin)
-	return zipReader
-}
-
-func (cmd cmdInstall) printfIfVerbose(format string, a ...interface{}) (n int, err error) {
-	if cmd.verbose {
-		return util.Printf(format, a...)
-	} else {
-		return 0, nil
-	}
-}
-
 func putDepIntoMap(depsMap map[string]map[string][]string, dep pollapo.PollapoDep, origin string) {
 	f := func(dep pollapo.PollapoDep) string { return dep.Owner + "/" + dep.Repo }
 	if depsMap[f(dep)] == nil {
@@ -300,15 +278,4 @@ func putDepIntoMap(depsMap map[string]map[string][]string, dep pollapo.PollapoDe
 	} else {
 		depsMap[f(dep)][dep.Ref] = []string{origin}
 	}
-}
-
-func (cmd cmdInstall) cacheZipIfMiss(dep pollapo.PollapoDep, wg *sync.WaitGroup) {
-	if _, err := cmd.cache.Get(cacheKeyOf(dep, "zip")); err != nil {
-		util.Printf("Downloading %s...\n", util.Yellow(dep.String()))
-		cmd.getAndCacheZip(dep)
-		util.Printf("Stored cache %s\n", util.Yellow(dep.String()))
-	} else {
-		cmd.printfIfVerbose("Found cache of %s.\n", util.Yellow(dep.String()))
-	}
-	wg.Done()
 }

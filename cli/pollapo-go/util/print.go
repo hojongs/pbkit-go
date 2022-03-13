@@ -20,3 +20,11 @@ func Print(a ...interface{}) (n int, err error) {
 func Println(a ...interface{}) (n int, err error) {
 	return fmt.Println(a...)
 }
+
+func PrintfVerbose(name string, verbose bool, format string, a ...interface{}) (n int, err error) {
+	if verbose {
+		return Printf(fmt.Sprintf("VERBOSE[%s]: %s", name, format), a...)
+	} else {
+		return 0, nil
+	}
+}
