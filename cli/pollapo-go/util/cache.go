@@ -8,14 +8,13 @@ import (
 	"path"
 	"sync"
 
-	"github.com/hojongs/pbkit-go/cli/pollapo-go/log"
 	"github.com/patrickmn/go-cache"
 )
 
 func GetDefaultCacheRoot() string {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		log.Sugar.Fatalw("UserHomeDir", err)
+		Sugar.Fatalw("UserHomeDir", err)
 	}
 	return fmt.Sprintf("%v/.cache/pollapo-go", homeDir)
 }
@@ -61,7 +60,7 @@ func SaveCache(cache *cache.Cache, cacheFilepath string, mu *sync.RWMutex) error
 	enc := gob.NewEncoder(f)
 	defer func() {
 		if x := recover(); x != nil {
-			log.Sugar.Fatal("Error registering item types with Gob library")
+			Sugar.Fatal("Error registering item types with Gob library")
 		}
 	}()
 	items := cache.Items()

@@ -11,7 +11,6 @@ import (
 
 	"github.com/Masterminds/semver"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/github"
-	"github.com/hojongs/pbkit-go/cli/pollapo-go/log"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/myzip"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/pollapo"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/util"
@@ -123,7 +122,7 @@ func (cmd cmdInstall) Install() {
 		util.Printf("%s\n", util.Red("error"))
 		absPath, err := filepath.Abs(cmd.pollapoYmlPath)
 		if err != nil {
-			log.Sugar.Fatalw("Unknown error. Please retry.", err)
+			util.Sugar.Fatalw("Unknown error. Please retry.", err)
 		}
 		util.Printf("%s not found.\n", util.Red(absPath))
 		// TODO: Ask create pollapo.yml
@@ -131,7 +130,7 @@ func (cmd cmdInstall) Install() {
 	}
 	util.PrintfVerbose(logName, cmd.verbose, "Clean out directory %s.\n", util.Yellow(cmd.outDir))
 	if err := os.RemoveAll(cmd.outDir); err != nil {
-		log.Sugar.Fatalw("Remove out dir", err, "outDir", cmd.outDir)
+		util.Sugar.Fatalw("Remove out dir", err, "outDir", cmd.outDir)
 	}
 	cmd.installDepsRecursive(rootCfg)
 	cmd.gc.Flush()
@@ -173,12 +172,12 @@ func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 				// get pollapo config
 				rc, err := pollapoFile.Open()
 				if err != nil {
-					log.Sugar.Fatalw("Failed to open pollapo file", err)
+					util.Sugar.Fatalw("Failed to open pollapo file", err)
 				}
 				bin, err := io.ReadAll(rc)
 				rc.Close()
 				if err != nil {
-					log.Sugar.Fatalw("Failed to read pollapo file", err)
+					util.Sugar.Fatalw("Failed to read pollapo file", err)
 				}
 				depCfg := pollapo.ParsePollapo(bin)
 				for _, dep := range depCfg.GetDeps(cmd.verbose) {
@@ -206,7 +205,7 @@ func (cmd cmdInstall) installDepsRecursive(rootCfg pollapo.PollapoConfig) {
 	for _, depTxt := range latestDeps {
 		dep, isOk := pollapo.ParseDep(depTxt)
 		if !isOk {
-			log.Sugar.Fatalw("Failed to parse dep", nil, "dep", depTxt)
+			util.Sugar.Fatalw("Failed to parse dep", nil, "dep", depTxt)
 		}
 		depOutDir := filepath.Join(cmd.outDir, dep.Owner, dep.Repo)
 		zipReader := cmd.getZip(dep)

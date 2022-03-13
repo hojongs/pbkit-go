@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/hojongs/pbkit-go/cli/pollapo-go/log"
+	"github.com/hojongs/pbkit-go/cli/pollapo-go/util"
 )
 
 type Unzipper interface {
@@ -40,7 +40,7 @@ func (uz UnzipperImpl) Unzip(zipReader *zip.Reader, outDir string) {
 		// log.Infow("Unzip", "filepath", fname)
 		fpath := filepath.Join(outDir, fname)
 		if !strings.HasPrefix(fpath, filepath.Clean(outDir)+string(os.PathSeparator)) {
-			log.Sugar.Fatalw("Failed to unzip: invalid path", nil, "path", fpath)
+			util.Sugar.Fatalw("Failed to unzip: invalid path", nil, "path", fpath)
 		}
 
 		// mkdir
@@ -49,7 +49,7 @@ func (uz UnzipperImpl) Unzip(zipReader *zip.Reader, outDir string) {
 			continue
 		}
 		if err := os.MkdirAll(filepath.Dir(fpath), 0755); err != nil {
-			log.Sugar.Fatalw("Failed to unzip", err)
+			util.Sugar.Fatalw("Failed to unzip", err)
 		}
 
 		SaveUnzippedFile(f, fpath)
@@ -59,7 +59,7 @@ func (uz UnzipperImpl) Unzip(zipReader *zip.Reader, outDir string) {
 func NewZipReader(zipBin []byte) *zip.Reader {
 	zipReader, err := zip.NewReader(bytes.NewReader(zipBin), int64(len(zipBin)))
 	if err != nil {
-		log.Sugar.Fatalw("Read zip", err)
+		util.Sugar.Fatalw("Read zip", err)
 	}
 	return zipReader
 }
@@ -67,16 +67,16 @@ func NewZipReader(zipBin []byte) *zip.Reader {
 func SaveUnzippedFile(f *zip.File, fpath string) {
 	outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
 	if err != nil {
-		log.Sugar.Fatalw("Failed to unzip", err)
+		util.Sugar.Fatalw("Failed to unzip", err)
 	}
 	defer outFile.Close()
 	rc, err := f.Open()
 	if err != nil {
-		log.Sugar.Fatalw("Failed to unzip", err)
+		util.Sugar.Fatalw("Failed to unzip", err)
 	}
 	defer rc.Close()
 	_, err = io.Copy(outFile, rc)
 	if err != nil {
-		log.Sugar.Fatalw("Failed to unzip", err)
+		util.Sugar.Fatalw("Failed to unzip", err)
 	}
 }

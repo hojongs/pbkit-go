@@ -2,7 +2,6 @@ package cmds
 
 import (
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/github"
-	"github.com/hojongs/pbkit-go/cli/pollapo-go/log"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/util"
 	"github.com/urfave/cli/v2"
 )
@@ -20,7 +19,7 @@ var CommandLogin = cli.Command{
 func login() {
 	token := github.GetTokenFromGhHosts()
 	if len(token) == 0 {
-		log.Sugar.Info("Token not found.")
+		util.Sugar.Info("Token not found.")
 		token = github.TryOauthFlow()
 		github.WriteTokenGhHosts(token)
 	} else {

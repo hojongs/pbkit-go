@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/hojongs/pbkit-go/cli/pollapo-go/log"
+	"github.com/hojongs/pbkit-go/cli/pollapo-go/util"
 )
 
 type ZipDownloader interface {
@@ -23,11 +23,11 @@ func NewZipDownloader() ZipDownloader {
 func (zd DefaultZipDownloader) GetZip(zipUrl string) (*zip.Reader, []byte) {
 	resp, err := http.Get(zipUrl)
 	if err != nil {
-		log.Sugar.Fatalw("Failed to HTTP Get", err, "zipUrl", zipUrl)
+		util.Sugar.Fatalw("Failed to HTTP Get", err, "zipUrl", zipUrl)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		log.Sugar.Fatalw("HTTP Response is not OK", nil, "status", resp.StatusCode)
+		util.Sugar.Fatalw("HTTP Response is not OK", nil, "status", resp.StatusCode)
 	}
 	zipBin := readAll(resp.Body)
 	zipReader := NewZipReader(zipBin)
@@ -50,7 +50,7 @@ func readAll(reader io.Reader) []byte {
 	// }}
 	zipBin, err := io.ReadAll(reader)
 	if err != nil {
-		log.Sugar.Fatalw("Failed to Read HTTP Response body", err, "body", zipBin[:1024])
+		util.Sugar.Fatalw("Failed to Read HTTP Response body", err, "body", zipBin[:1024])
 	}
 	return zipBin
 }

@@ -7,7 +7,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/hojongs/pbkit-go/cli/pollapo-go/log"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/util"
 	"github.com/patrickmn/go-cache"
 )
@@ -51,7 +50,7 @@ func NewCachedZipDownloader(cacheDir string, verbose bool, onCacheMiss func(ref 
 func (zd CachedZipDownloader) GetZip(zipUrl string) (*zip.Reader, []byte) {
 	u, err := url.Parse(zipUrl)
 	if err != nil {
-		log.Sugar.Fatalw("Failed to parse URL", err, "u.Path", u.Path)
+		util.Sugar.Fatalw("Failed to parse URL", err, "u.Path", u.Path)
 	}
 	cacheKey := u.Path
 	// The code below depends on GitHub Url
@@ -101,7 +100,7 @@ func (zd CachedZipDownloader) GetZip(zipUrl string) (*zip.Reader, []byte) {
 				util.PrintfVerbose(logName, zd.verbose, "Get zipBin from cache instead of ch %s\n", util.Yellow(u.Path))
 				b, found := zd.cache.Get(cacheKey)
 				if !found {
-					log.Sugar.Fatalw("Unexpected cache miss", nil)
+					util.Sugar.Fatalw("Unexpected cache miss", nil)
 				}
 				zipBin := b.([]byte)
 				return NewZipReader(zipBin), zipBin

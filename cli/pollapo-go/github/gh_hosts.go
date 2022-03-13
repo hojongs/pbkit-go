@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/hojongs/pbkit-go/cli/pollapo-go/log"
+	"github.com/hojongs/pbkit-go/cli/pollapo-go/util"
 	"gopkg.in/yaml.v3"
 )
 
@@ -19,15 +19,15 @@ func WriteTokenGhHosts(token string) []byte {
 	}
 	err := os.MkdirAll(filepath.Base(path), 0755)
 	if err != nil {
-		log.Sugar.Fatalw("Failed to mkdir", err)
+		util.Sugar.Fatalw("Failed to mkdir", err)
 	}
 	barr, err := yaml.Marshal(hostsYml)
 	if err != nil {
-		log.Sugar.Fatalw("Failed to marshal yml", err)
+		util.Sugar.Fatalw("Failed to marshal yml", err)
 	}
 	err = os.WriteFile(path, barr, 0644)
 	if err != nil {
-		log.Sugar.Fatalw("Failed to write file", err, "path", path)
+		util.Sugar.Fatalw("Failed to write file", err, "path", path)
 	}
 	return barr
 }
@@ -41,7 +41,7 @@ func GetTokenFromGhHosts() string {
 	cfg := GhHosts{}
 	err = yaml.Unmarshal([]byte(barr), &cfg)
 	if err != nil {
-		log.Sugar.Fatalw("Failed to parse gh hosts.yaml", err)
+		util.Sugar.Fatalw("Failed to parse gh hosts.yaml", err)
 	}
 	return cfg.GithubCom.OauthToken
 }
@@ -63,7 +63,7 @@ func getDefaultGhHostsPath() string {
 	} else {
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
-			log.Sugar.Fatalw("Failed to get home dir", err)
+			util.Sugar.Fatalw("Failed to get home dir", err)
 		}
 		dir = filepath.Join(homeDir, ".config", "gh")
 	}

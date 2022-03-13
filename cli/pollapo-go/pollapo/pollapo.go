@@ -5,7 +5,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/hojongs/pbkit-go/cli/pollapo-go/log"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/util"
 	"gopkg.in/yaml.v3"
 )
@@ -30,7 +29,7 @@ func ParsePollapo(barr []byte) PollapoConfig {
 	cfg := PollapoConfigYml{}
 	err := yaml.Unmarshal([]byte(barr), &cfg)
 	if err != nil {
-		log.Sugar.Fatalw("Failed to unmarshal yaml", err.Error(), "yaml", barr)
+		util.Sugar.Fatalw("Failed to unmarshal yaml", err.Error(), "yaml", barr)
 	}
 	return cfg
 }
@@ -44,7 +43,7 @@ func (cfg PollapoConfigYml) GetDeps(verbose bool) []PollapoDep {
 	for _, depTxt := range cfg.Deps {
 		dep, isOk := ParseDep(depTxt)
 		if !isOk {
-			log.Sugar.Fatalw("Invalid dep", nil, "dep", depTxt)
+			util.Sugar.Fatalw("Invalid dep", nil, "dep", depTxt)
 		}
 		hasLock := false
 		for k, v := range cfg.Root.Lock {
