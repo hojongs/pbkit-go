@@ -2,40 +2,27 @@ package myzip
 
 import (
 	"archive/zip"
-	"fmt"
 	"io"
 	"net/http"
-	"os"
 
-	"github.com/hojongs/pbkit-go/cli/pollapo-go/github"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/log"
-	"github.com/hojongs/pbkit-go/cli/pollapo-go/util"
 )
 
 type ZipDownloader interface {
 	// returns zip reader with zip data binary
-	GetZip(owner string, repo string, ref string) (*zip.Reader, []byte)
+	GetZip(zipUrl string) (*zip.Reader, []byte)
 }
 
-type GitHubZipDownloader struct {
-	// TODO: remove
-	client github.GitHubClient
+type GitHubZipDownloader struct{}
+
+func NewGitHubZipDownloader() GitHubZipDownloader {
+	return GitHubZipDownloader{}
 }
 
-func NewGitHubZipDownloader(client github.GitHubClient) GitHubZipDownloader {
-	return GitHubZipDownloader{client}
-}
-
-func (gzd GitHubZipDownloader) GetZip(owner string, repo string, ref string) (*zip.Reader, []byte) {
-	zipUrl, err := gzd.client.GetZipLink(owner, repo, ref)
-	if err != nil {
-		util.Printf("%s\n", util.Red("error"))
-		util.Printf("Login required. (%s/%s@%s)\n", owner, repo, ref)
-		os.Exit(1)
-	}
+func (gzd GitHubZipDownloader) GetZip(zipUrl string) (*zip.Reader, []byte) {
 	resp, err := http.Get(zipUrl)
 	if err != nil {
-		log.Fatalw("Failed to HTTP Get", err, "dep", fmt.Sprintf("%s/%s@%v", owner, repo, ref))
+		log.Fatalw("Failed to HTTP Get", err, "zipUrl", zipUrl)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {

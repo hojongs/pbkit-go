@@ -77,7 +77,8 @@ var CommandInstall = cli.Command{
 			c.Bool("clean"),
 			c.String("out-dir"),
 			c.String("config"),
-			myzip.NewGitHubZipDownloader(gc),
+			gc,
+			myzip.NewGitHubZipDownloader(),
 			myzip.UnzipperImpl{},
 			pollapo.FileConfigLoader{},
 			cache.NewFileSystemCache(),
@@ -91,6 +92,7 @@ type cmdInstall struct {
 	cleanCache     bool
 	outDir         string
 	pollapoYmlPath string
+	gc             github.GitHubClient
 	zd             myzip.ZipDownloader
 	uz             myzip.Unzipper
 	loader         pollapo.ConfigLoader
@@ -102,13 +104,14 @@ func newCmdInstall(
 	cleanCache bool,
 	outDir string,
 	pollapoYmlPath string,
+	gc github.GitHubClient,
 	zd myzip.ZipDownloader,
 	uz myzip.Unzipper,
 	loader pollapo.ConfigLoader,
 	cache cache.Cache,
 	verbose bool,
 ) cmdInstall {
-	return cmdInstall{cleanCache, outDir, pollapoYmlPath, zd, uz, loader, cache, verbose}
+	return cmdInstall{cleanCache, outDir, pollapoYmlPath, gc, zd, uz, loader, cache, verbose}
 }
 
 func (cmd cmdInstall) Install() {
@@ -266,7 +269,13 @@ func latestRef(refs RefArray) string {
 
 func (cmd cmdInstall) getAndCacheZip(dep pollapo.PollapoDep) *zip.Reader {
 	// log.Infow("Cache not found", "dep", util.Yellow(cacheKeyOf(dep)))
-	zipReader, zipBin := cmd.zd.GetZip(dep.Owner, dep.Repo, dep.Ref)
+	zipUrl, err := cmd.gc.GetZipLink(dep.Owner, dep.Repo, dep.Ref)
+	if err != nil {
+		util.Printf("%s\n", util.Red("error"))
+		util.Printf("Login required. (%s)\n", dep)
+		os.Exit(1)
+	}
+	zipReader, zipBin := cmd.zd.GetZip(zipUrl)
 	cmd.cache.Store(cacheKeyOf(dep, "zip"), zipBin)
 	return zipReader
 }
