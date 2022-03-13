@@ -78,7 +78,7 @@ var CommandInstall = cli.Command{
 			c.String("out-dir"),
 			c.String("config"),
 			github.NewCachedGitHubClient(util.GetDefaultCacheRoot(), token, c.Bool("verbose")),
-			myzip.NewCachedZipDownloader(util.GetDefaultCacheRoot(), c.Bool("verbose"), onCacheMiss, onCacheStore, onCacheHit), // TODO: remove cach logic in install.go
+			myzip.NewCachedZipDownloader(util.GetDefaultCacheRoot(), c.Bool("verbose"), onCacheMiss, onCacheStore, onCacheHit),
 			myzip.UnzipperImpl{},
 			pollapo.FileConfigLoader{},
 			c.Bool("verbose"),

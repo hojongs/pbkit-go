@@ -6,7 +6,7 @@ import (
 	"runtime"
 
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/log"
-	"github.com/hojongs/pbkit-go/cli/pollapo-go/yaml"
+	"gopkg.in/yaml.v3"
 )
 
 func WriteTokenGhHosts(token string) []byte {

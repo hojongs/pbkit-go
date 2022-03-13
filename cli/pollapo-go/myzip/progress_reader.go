@@ -2,6 +2,7 @@ package myzip
 
 import "io"
 
+// TODO
 type ProgressReader struct {
 	io.Reader
 	Reporter func(r int64)
