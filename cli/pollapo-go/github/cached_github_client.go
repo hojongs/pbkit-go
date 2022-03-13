@@ -5,6 +5,7 @@ import (
 	"path"
 	"sync"
 
+	"github.com/Masterminds/semver"
 	"github.com/hojongs/pbkit-go/cli/pollapo-go/util"
 	"github.com/patrickmn/go-cache"
 )
@@ -71,16 +72,14 @@ func (gc CachedGitHubClient) getCommit(owner string, repo string, ref string) (s
 		if err != nil {
 			return "", err
 		}
-		gc.cache.Set(key, commit, cache.DefaultExpiration)
-		// TODO: impl pollapo root.lock first to avoid cache miss many times
-		// if ref == commit[:len(ref)] {
-		// 	gc.cache.Set(key, commit, cache.DefaultExpiration)
-		// } else {
-		// 	// if not, the ref is branch or tag rather than commit sha1
-		// 	// then do not set cache cuz the commit of branches or tags may change
-		// 	util.PrintfVerbose(logName, gc.verbose, "Ref %s is not commit sha1.\n", util.Yellow(ref))
-		// 	log.Sugar.Fatal("Ref is not commit sha1.")
-		// }
+		if _, err := semver.NewVersion(ref); ref == commit[:len(ref)] || err == nil {
+			// if ref is commit hash or semver
+			// if semver ref is a branch or changed their commit to another commit, then cache should be clean
+			gc.cache.Set(key, commit, cache.DefaultExpiration)
+		} else {
+			// if ref is branch, then do not set cache cuz the commit of branches may change
+			util.PrintfVerbose(logName, gc.verbose, "Ref %s is not commit sha1.\n", util.Yellow(ref))
+		}
 		key2 := fmt.Sprintf("commit:%v/%v@%v", owner, repo, commit) // the length of commit is 40
 		gc.cache.Set(key2, commit, cache.DefaultExpiration)
 		return commit, nil
