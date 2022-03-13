@@ -11,13 +11,14 @@ import (
 type GitHubClient interface {
 	GetZipLink(owner string, repo string, ref string) (string, error)
 	GetCommit(owner string, repo string, ref string) (string, error)
+	Flush() error
 }
 
 type DefaultGitHubClient struct {
 	client *github.Client
 }
 
-func NewGitHubClient(token string) DefaultGitHubClient {
+func NewGitHubClient(token string) GitHubClient {
 	var client *github.Client = nil
 	if len(token) > 0 {
 		client = initClientByToken(token)
@@ -43,6 +44,8 @@ func (gc DefaultGitHubClient) GetCommit(owner string, repo string, ref string) (
 	}
 	return commit, nil
 }
+
+func (gc DefaultGitHubClient) Flush() error { return nil }
 
 func initClientByToken(token string) *github.Client {
 	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})

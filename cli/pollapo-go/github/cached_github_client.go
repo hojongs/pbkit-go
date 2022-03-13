@@ -8,7 +8,7 @@ import (
 )
 
 type CachedGitHubClient struct {
-	DefaultClient DefaultGitHubClient
+	DefaultClient GitHubClient
 	cache         *cache.Cache
 }
 
@@ -34,4 +34,9 @@ func (gc CachedGitHubClient) GetCommit(owner string, repo string, ref string) (s
 		gc.cache.Set(key, commit, cache.DefaultExpiration)
 		return commit, nil
 	}
+}
+
+func (gc CachedGitHubClient) Flush() error {
+	// TODO: gc.cache.Items()
+	return nil
 }
