@@ -178,15 +178,22 @@ func (cmd cmdInstall) installDepsRecursive(rootCfg *pollapo.PollapoConfig) {
 		queue := []pollapo.PollapoDep{}
 		for _, dep := range depHandleQueue {
 			// TODO: froms are unused. command 'why' will use it maybe.
-			lockedRef, found := (*rootCfg).GetLock(dep)
-			if !found {
-				commit, err := cmd.gc.GetCommit(dep.Owner, dep.Repo, dep.Ref)
-				if err == nil {
-					(*rootCfg).SetLock(dep, commit)
-					dep.Ref = commit
+			commit, err := cmd.gc.GetCommit(dep.Owner, dep.Repo, dep.Ref)
+			if err != nil {
+				util.Sugar.Fatalw("Failed to get commit: %s", dep)
+			}
+			if commit[:len(dep.Ref)] != dep.Ref {
+				// if dep.Ref is not commit hash
+				lockedRef, found := (*rootCfg).GetLock(dep)
+				if !found {
+					commit, err := cmd.gc.GetCommit(dep.Owner, dep.Repo, dep.Ref)
+					if err == nil {
+						(*rootCfg).SetLock(dep, commit)
+						dep.Ref = commit
+					}
+				} else {
+					dep.Ref = lockedRef
 				}
-			} else {
-				dep.Ref = lockedRef
 			}
 			putDepIntoMap(depsMap, dep, origin)
 			zipReader := cmd.getZip(dep)
