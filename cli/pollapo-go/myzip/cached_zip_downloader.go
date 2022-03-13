@@ -15,15 +15,17 @@ import (
 )
 
 type CachedZipDownloader struct {
-	Default   ZipDownloader
-	dlChanMap map[string]chan *[]byte // download progress channel
-	dlChanMtx *sync.Mutex
-	cache     *cache.Cache
-	verbose   bool // TODO; replace it with verbose printer (verbose check, print prefix)
+	Default       ZipDownloader
+	dlChanMap     map[string]chan *[]byte // download progress channel
+	dlChanMtx     *sync.Mutex
+	cache         *cache.Cache
+	cacheFilepath string
+	verbose       bool // TODO; replace it with verbose printer (verbose check, print prefix)
 }
 
 func NewCachedZipDownloader(cacheDir string, verbose bool) ZipDownloader {
-	barr, err := os.ReadFile(path.Join(cacheDir, "zip-cache"))
+	cacheFilepath := path.Join(cacheDir, "zip-cache")
+	barr, err := os.ReadFile(cacheFilepath)
 	var c *cache.Cache
 	if err != nil {
 		c = cache.New(cache.NoExpiration, cache.NoExpiration)
@@ -51,6 +53,7 @@ func NewCachedZipDownloader(cacheDir string, verbose bool) ZipDownloader {
 		make(map[string]chan *[]byte),
 		&sync.Mutex{},
 		c,
+		cacheFilepath,
 		verbose,
 	}
 }
@@ -125,6 +128,28 @@ func (zd CachedZipDownloader) GetZip(zipUrl string) (*zip.Reader, []byte) {
 }
 
 func (zd CachedZipDownloader) Flush() error {
-	// TODO: Save cache to file
+	// Save cache items to file
+	// https://github.com/patrickmn/go-cache/blob/v2.1.0/cache.go#L963
+	f, err := os.Create(zd.cacheFilepath)
+	if err != nil {
+		return err
+	}
+	enc := gob.NewEncoder(f)
+	defer func() {
+		if x := recover(); x != nil {
+			log.Sugar.Fatal("Error registering item types with Gob library")
+		}
+	}()
+	items := zd.cache.Items()
+	mu := sync.RWMutex{}
+	mu.RLock()
+	defer mu.RUnlock()
+	for _, v := range items {
+		gob.Register(v.Object)
+	}
+	err = enc.Encode(&items)
+	if err != nil {
+		return err
+	}
 	return nil
 }

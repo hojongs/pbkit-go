@@ -136,7 +136,8 @@ func (cmd cmdInstall) Install() {
 		log.Fatalw("Remove out dir", err, "outDir", cmd.outDir)
 	}
 	cmd.installDepsRecursive(rootCfg)
-	// TODO: call gc.Flush()
+	cmd.gc.Flush()
+	cmd.zd.Flush()
 	util.Println("Done.")
 }
 
