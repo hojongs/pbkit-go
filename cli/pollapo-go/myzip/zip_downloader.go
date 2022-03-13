@@ -18,10 +18,11 @@ type ZipDownloader interface {
 }
 
 type GitHubZipDownloader struct {
-	client github.Client
+	// TODO: remove
+	client github.GitHubClient
 }
 
-func NewGitHubZipDownloader(client github.Client) GitHubZipDownloader {
+func NewGitHubZipDownloader(client github.GitHubClient) GitHubZipDownloader {
 	return GitHubZipDownloader{client}
 }
 
