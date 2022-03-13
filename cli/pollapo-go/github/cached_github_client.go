@@ -24,13 +24,14 @@ func (gc CachedGitHubClient) GetZipLink(owner string, repo string, ref string) (
 func (gc CachedGitHubClient) GetCommit(owner string, repo string, ref string) (string, error) {
 	key := cacheKey(owner, repo, ref)
 	commit, found := gc.cache.Get(key)
-	if !found {
-		var err error
-		commit, err = gc.DefaultClient.GetCommit(owner, repo, ref)
+	if found {
+		return fmt.Sprintf("%v", commit), nil
+	} else {
+		commit, err := gc.DefaultClient.GetCommit(owner, repo, ref)
 		if err != nil {
 			return "", err
 		}
+		gc.cache.Set(key, commit, cache.DefaultExpiration)
+		return commit, nil
 	}
-	gc.cache.Set(key, commit, cache.DefaultExpiration)
-	return fmt.Sprintf("%v", commit), nil
 }
