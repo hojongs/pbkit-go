@@ -69,11 +69,14 @@ var CommandInstall = cli.Command{
 			token = github.GetTokenFromGhHosts()
 		}
 
+		if c.Bool("clean") {
+			util.Printf("Clean cache root: %s\n", util.Yellow(util.GetDefaultCacheRoot()))
+			os.RemoveAll(util.GetDefaultCacheRoot())
+		}
 		onCacheMiss := func(cacheKey string) { util.Printf("Downloading %s...\n", util.Yellow(cacheKey)) }
 		onCacheStore := func(cacheKey string) { util.Printf("Store cache %s...\n", util.Yellow(cacheKey)) }
 		onCacheHit := func(cacheKey string) { util.Printf("Found cache of %s.\n", util.Yellow(cacheKey)) }
 		newCmdInstall(
-			c.Bool("clean"),
 			c.String("out-dir"),
 			c.String("config"),
 			github.NewCachedGitHubClient(util.GetDefaultCacheRoot(), token, c.Bool("verbose")),
@@ -87,7 +90,6 @@ var CommandInstall = cli.Command{
 }
 
 type cmdInstall struct {
-	cleanCache     bool
 	outDir         string
 	pollapoYmlPath string
 	gc             github.GitHubClient
@@ -98,7 +100,6 @@ type cmdInstall struct {
 }
 
 func newCmdInstall(
-	cleanCache bool,
 	outDir string,
 	pollapoYmlPath string,
 	gc github.GitHubClient,
@@ -107,16 +108,12 @@ func newCmdInstall(
 	loader pollapo.ConfigLoader,
 	verbose bool,
 ) cmdInstall {
-	return cmdInstall{cleanCache, outDir, pollapoYmlPath, gc, zd, uz, loader, verbose}
+	return cmdInstall{outDir, pollapoYmlPath, gc, zd, uz, loader, verbose}
 }
 
 var logName = "Install"
 
 func (cmd cmdInstall) Install() {
-	if cmd.cleanCache {
-		util.Printf("Clean cache root: %s\n", util.Yellow(util.GetDefaultCacheRoot()))
-		os.RemoveAll(util.GetDefaultCacheRoot())
-	}
 	rootCfg, err := cmd.loader.GetPollapoConfig(cmd.pollapoYmlPath)
 	if err != nil {
 		util.Printf("%s\n", util.Red("error"))
