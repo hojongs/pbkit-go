@@ -2,6 +2,8 @@ package github
 
 import (
 	"context"
+	"net/http"
+	"time"
 
 	"github.com/google/go-github/v42/github"
 	"golang.org/x/oauth2"
@@ -22,7 +24,7 @@ func NewGitHubClient(token string) GitHubClient {
 	if len(token) > 0 {
 		client = initClientByToken(token)
 	} else {
-		client = github.NewClient(nil)
+		client = github.NewClient(getDefaultHttpClient())
 	}
 	return DefaultGitHubClient{client}
 }
@@ -50,4 +52,14 @@ func initClientByToken(token string) *github.Client {
 	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
 	tc := oauth2.NewClient(context.Background(), ts)
 	return github.NewClient(tc)
+}
+
+func getDefaultHttpClient() *http.Client {
+	t := http.DefaultTransport.(*http.Transport).Clone()
+	t.MaxConnsPerHost = t.MaxIdleConns
+	t.MaxIdleConnsPerHost = t.MaxIdleConns
+	return &http.Client{
+		Transport: t,
+		Timeout:   30 * time.Second,
+	}
 }
