@@ -1,5 +1,7 @@
 # pbkit-go: Pbkit written in Go
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/hojongs/pbkit-go)](https://goreportcard.com/report/github.com/hojongs/pbkit-go)
+
 Original proejct: https://github.com/pbkit/pbkit 
 
 > Note: This project is very very early stage !!!
