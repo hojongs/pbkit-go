@@ -2,7 +2,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/hojongs/pbkit-go)](https://goreportcard.com/report/github.com/hojongs/pbkit-go)
 
-Original proejct: https://github.com/pbkit/pbkit 
+Original proejct: https://github.com/pbkit/pbkit
 
 > Note: This project is very very early stage !!!
 
@@ -86,4 +86,3 @@ mockgen -source ./cli/pollapo-go/myzip/zip.go -destination ./cli/pollapo-go/myzi
 mockgen -source ./cli/pollapo-go/pollapo/pollapo_config_loader.go -destination ./cli/pollapo-go/pollapo/pollapo_config_loader_mock.go -package pollapo
 go test -v ./cli/pollapo-go/cmds
 ```
-
