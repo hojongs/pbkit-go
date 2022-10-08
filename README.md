@@ -86,3 +86,5 @@ mockgen -source ./cli/pollapo-go/myzip/zip.go -destination ./cli/pollapo-go/myzi
 mockgen -source ./cli/pollapo-go/pollapo/pollapo_config_loader.go -destination ./cli/pollapo-go/pollapo/pollapo_config_loader_mock.go -package pollapo
 go test -v ./cli/pollapo-go/cmds
 ```
+
+## Contribution
